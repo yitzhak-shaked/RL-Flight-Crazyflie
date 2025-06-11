@@ -1,10 +1,20 @@
 cmake_minimum_required(VERSION 3.16)
 cmake_policy(SET CMP0003 NEW)
 
+# Enable CUDA support
+enable_language(CUDA)
 
-project(learning_to_fly)
+project(learning_to_fly LANGUAGES CXX CUDA)
 
 set(CMAKE_CXX_STANDARD 17)
+
+# CUDA configuration
+if(CMAKE_CUDA_COMPILER)
+    set(CMAKE_CUDA_STANDARD 17)
+    set(CMAKE_CUDA_STANDARD_REQUIRED ON)
+    set(RL_TOOLS_BACKEND_ENABLE_CUDA ON)
+    message(STATUS "CUDA enabled: ${CMAKE_CUDA_COMPILER_VERSION}")
+endif()
 
 find_package(HDF5)
 if(HDF5_FOUND)

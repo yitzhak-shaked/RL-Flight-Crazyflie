@@ -16,9 +16,8 @@ namespace learning_to_fly{
             static constexpr bool BENCHMARK = false;
 #endif
             using ABLATION_SPEC = T_ABLATION_SPEC;
-            using LOGGER = rlt::LOGGER_FACTORY<>;
-            using DEV_SPEC = rlt::devices::cpu::Specification<rlt::devices::math::CPU, rlt::devices::random::CPU, LOGGER>;
-            using DEVICE = rlt::DEVICE_FACTORY<DEV_SPEC>;
+            // Use DefaultCUDA device instead of CPU
+            using DEVICE = rlt::devices::DefaultCUDA;
             using T = float;
             using TI = typename DEVICE::index_t;
 
@@ -30,12 +29,12 @@ namespace learning_to_fly{
             static_assert(ENVIRONMENT::ACTION_DIM == ENVIRONMENT_EVALUATION::ACTION_DIM);
             using UI = bool;
 
-            struct DEVICE_SPEC: rlt::devices::DefaultCPUSpecification {
-                using LOGGING = rlt::devices::logging::CPU;
+            struct DEVICE_SPEC: rlt::devices::DefaultCUDASpecification {
+                using LOGGING = rlt::devices::logging::CUDA;
             };
             struct TD3PendulumParameters: rlt::rl::algorithms::td3::DefaultParameters<T, TI>{
-                static constexpr TI ACTOR_BATCH_SIZE = 256;
-                static constexpr TI CRITIC_BATCH_SIZE = 256;
+                static constexpr TI ACTOR_BATCH_SIZE = 512;  // Larger batch for GPU
+                static constexpr TI CRITIC_BATCH_SIZE = 512;
                 static constexpr TI TRAINING_INTERVAL = 10;
                 static constexpr TI CRITIC_TRAINING_INTERVAL = 1 * TRAINING_INTERVAL;
                 static constexpr TI ACTOR_TRAINING_INTERVAL = 2 * TRAINING_INTERVAL;
@@ -58,10 +57,8 @@ namespace learning_to_fly{
             using CRITIC_TARGET_TYPE = typename ACTOR_CRITIC_CONFIG::CRITIC_TARGET_TYPE;
             using OPTIMIZER = typename ACTOR_CRITIC_CONFIG::OPTIMIZER;
 
-
             using ACTOR_CRITIC_SPEC = rlt::rl::algorithms::td3::Specification<T, TI, ENVIRONMENT, ACTOR_TYPE, ACTOR_TARGET_TYPE, CRITIC_TYPE, CRITIC_TARGET_TYPE, OPTIMIZER, TD3_PARAMETERS>;
             using ACTOR_CRITIC_TYPE = rlt::rl::algorithms::td3::ActorCritic<ACTOR_CRITIC_SPEC>;
-
 
             static constexpr bool ACTOR_ENABLE_CHECKPOINTS = !BENCHMARK;
             static constexpr TI ACTOR_CHECKPOINT_INTERVAL = 100000;
@@ -72,7 +69,6 @@ namespace learning_to_fly{
             static constexpr TI EPISODE_STATS_BUFFER_SIZE = 1000;
             static constexpr TI N_ENVIRONMENTS = 1;
             static constexpr TI STEP_LIMIT = 100001;
-//            static constexpr TI REPLAY_BUFFER_LIMIT = 3000000;
             static constexpr TI REPLAY_BUFFER_CAP = STEP_LIMIT;
             static constexpr TI ENVIRONMENT_STEP_LIMIT = 500;
             static constexpr TI ENVIRONMENT_STEP_LIMIT_EVALUATION = 500;
