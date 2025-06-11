@@ -1,0 +1,347 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        // =============================================================================
+        // BUILD TASKS
+        // =============================================================================
+        {
+            "label": "Configure CMake with CUDA",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B", "build",
+                "-S", ".",
+                "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
+                "-DLEARNING_TO_FLY_IN_SECONDS_ENABLE_TESTS=ON",
+                "-DRL_TOOLS_BACKEND_ENABLE_CUDA=ON"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Configure CMake build system with CUDA support"
+        },
+        {
+            "label": "Build CUDA Training Headless",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--target", "training_headless_cuda", "--parallel"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$nvcc"],
+            "dependsOn": "Configure CMake with CUDA",
+            "detail": "Build CUDA-accelerated training_headless executable"
+        },
+        {
+            "label": "Build Simple CUDA Training",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--target", "training_simple_cuda", "--parallel"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$nvcc"],
+            "dependsOn": "Configure CMake with CUDA",
+            "detail": "Build simple working CUDA training executable"
+        },
+        {
+            "label": "Build CUDA Training Benchmark",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--target", "training_benchmark_cuda", "--parallel"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$nvcc"],
+            "dependsOn": "Configure CMake with CUDA",
+            "detail": "Build CUDA-accelerated training_benchmark executable"
+        },
+        {
+            "label": "Build CUDA Ablation Study",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--target", "ablation_study_cuda", "--parallel"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$nvcc"],
+            "dependsOn": "Configure CMake with CUDA",
+            "detail": "Build CUDA-accelerated ablation_study executable"
+        },
+        {
+            "label": "Build All CUDA",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--parallel"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$gcc", "$nvcc"],
+            "dependsOn": "Configure CMake with CUDA",
+            "detail": "Build all targets with CUDA support"
+        },
+        {
+            "label": "Build All",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--parallel"],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$gcc"],
+            "dependsOn": "Configure CMake",
+            "detail": "Build all targets"
+        },
+        {
+            "label": "Build Training Headless",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--target", "training_headless", "--parallel"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$gcc"],
+            "dependsOn": "Configure CMake",
+            "detail": "Build training_headless executable"
+        },
+        {
+            "label": "Build Training Benchmark",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--target", "training_benchmark", "--parallel"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$gcc"],
+            "dependsOn": "Configure CMake",
+            "detail": "Build training_benchmark executable"
+        },
+        {
+            "label": "Build UI",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--target", "ui", "--parallel"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$gcc"],
+            "dependsOn": "Configure CMake",
+            "detail": "Build UI executable with web interface"
+        },
+        {
+            "label": "Build Ablation Study",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--target", "ablation_study", "--parallel"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$gcc"],
+            "dependsOn": "Configure CMake",
+            "detail": "Build ablation_study executable"
+        },
+        {
+            "label": "Build Evaluate Actor",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--target", "evaluate_actor", "--parallel"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$gcc"],
+            "dependsOn": "Configure CMake",
+            "detail": "Build evaluate_actor executable"
+        },
+        {
+            "label": "Build Tests",
+            "type": "shell",
+            "command": "cmake",
+            "args": ["--build", "build", "--parallel"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$gcc"],
+            "dependsOn": "Configure CMake",
+            "detail": "Build all targets including tests"
+        },
+        // =============================================================================
+        // FIRMWARE BUILD TASKS
+        // =============================================================================
+        {
+            "label": "Build Crazyflie Firmware",
+            "type": "shell",
+            "command": "make",
+            "args": [],
+            "options": {
+                "cwd": "${workspaceFolder}/controller"
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$gcc"],
+            "detail": "Build Crazyflie firmware with embedded RL controller"
+        },
+        {
+            "label": "Clean Firmware Build",
+            "type": "shell",
+            "command": "make",
+            "args": ["clean"],
+            "options": {
+                "cwd": "${workspaceFolder}/controller"
+            },
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Clean Crazyflie firmware build artifacts"
+        },
+        // =============================================================================
+        // UTILITY TASKS
+        // =============================================================================
+        {
+            "label": "Clean Build",
+            "type": "shell",
+            "command": "rm",
+            "args": ["-rf", "build"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Remove build directory"
+        },
+        {
+            "label": "Install Dependencies (UI)",
+            "type": "shell",
+            "command": "bash",
+            "args": ["src/ui/get_dependencies.sh"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Download JavaScript dependencies for web UI"
+        },
+        {
+            "label": "Update Git Submodules",
+            "type": "shell",
+            "command": "git",
+            "args": ["submodule", "update", "--init", "--recursive"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Initialize and update all git submodules"
+        }
+    ]
+}

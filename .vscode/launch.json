@@ -1,9 +1,207 @@
 {
     "version": "0.2.0",
     "configurations": [
+        // =============================================================================
+        // TRAINING CONFIGURATIONS
+        // =============================================================================
         {
-            "name": "trigger hovering (original)",
-            "type": "python",
+            "name": "🚀 Train RL Policy (Headless)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/training_headless",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build Training Headless",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "🎯 Train RL Policy (Benchmark)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/training_benchmark",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build Training Benchmark",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "🚀🔥 Simple CUDA Training",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/training_simple_cuda",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build Simple CUDA Training",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "🌐 Train with Web UI",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/ui",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build UI",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "🔬 Ablation Study",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/ablation_study",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build Ablation Study",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "📊 Evaluate Actor",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/evaluate_actor",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build Evaluate Actor",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        // =============================================================================
+        // CUDA-ACCELERATED TRAINING CONFIGURATIONS
+        // =============================================================================
+        {
+            "name": "🚀🔥 Train RL Policy (CUDA Headless)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/training_headless_cuda",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build CUDA Training Headless",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "🎯🔥 Train RL Policy (CUDA Benchmark)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/training_benchmark_cuda",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build CUDA Training Benchmark",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "🔬🔥 Ablation Study (CUDA)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${workspaceFolder}/build/src/ablation_study_cuda",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "setupCommands": [
+                {
+                    "description": "Enable pretty-printing for gdb",
+                    "text": "-enable-pretty-printing",
+                    "ignoreFailures": true
+                }
+            ],
+            "preLaunchTask": "Build CUDA Ablation Study",
+            "miDebuggerPath": "/usr/bin/gdb"
+        },
+        // =============================================================================
+        // HARDWARE CONTROL CONFIGURATIONS (Python)
+        // =============================================================================
+        {
+            "name": "🚁 Trigger: Hover (Original Controller)",
+            "type": "debugpy",
             "request": "launch",
             "program": "scripts/trigger.py",
             "console": "integratedTerminal",
@@ -13,20 +211,8 @@
             ]
         },
         {
-            "name": "trigger takeoff and switch",
-            "type": "python",
-            "request": "launch",
-            "program": "scripts/trigger.py",
-            "console": "integratedTerminal",
-            "justMyCode": true,
-            "args": [
-                "--mode", "takeoff_and_switch",
-                "--height", "0.2"
-            ]
-        },
-        {
-            "name": "trigger hovering (policy)",
-            "type": "python",
+            "name": "🚁 Trigger: Hover (Learned Policy)",
+            "type": "debugpy",
             "request": "launch",
             "program": "scripts/trigger.py",
             "console": "integratedTerminal",
@@ -37,16 +223,47 @@
             ]
         },
         {
-            "name": "trigger trajectory tracking",
-            "type": "python",
+            "name": "🚁 Trigger: Takeoff and Switch",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "scripts/trigger.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "--mode", "takeoff_and_switch",
+                "--height", "0.2",
+                "--transition-timeout", "3"
+            ]
+        },
+        {
+            "name": "🚁 Trigger: Trajectory Tracking",
+            "type": "debugpy",
             "request": "launch",
             "program": "scripts/trigger.py",
             "console": "integratedTerminal",
             "justMyCode": true,
             "args": [
                 "--mode", "trajectory_tracking",
-                "--trajectory-scale", "0.3"
+                "--trajectory-scale", "0.3",
+                "--trajectory-interval", "5.5",
+                "--transition-timeout", "3"
             ]
+        },
+        // =============================================================================
+        // TESTING CONFIGURATIONS
+        // =============================================================================
+        {
+            "name": "🧪 Run All Tests",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "/usr/bin/ctest",
+            "args": ["--test-dir", "${workspaceFolder}/build", "--verbose"],
+            "stopAtEntry": false,
+            "cwd": "${workspaceFolder}/build",
+            "environment": [],
+            "externalConsole": false,
+            "MIMode": "gdb",
+            "preLaunchTask": "Build Tests"
         }
     ]
 }
