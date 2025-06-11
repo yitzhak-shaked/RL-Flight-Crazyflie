@@ -1,0 +1,59 @@
+/******************************************************************************
+ * Setup Procedures
+ *****************************************************************************/
+Command Sequence For connecting Crazyradio USB Dongle to WSL:
+(assuming Dongle is connected to the 1-8 interface as will be visible after running usbipd)
+> Power-Shell:
+usbipd list
+usbipd attach --busid 1-8 --wsl
+
+:~$ WSL: (Testing)
+lsusb
+
+:~$ Command Sequence For Running cfclient:
+cd Projects/crazyflie-clients-python/
+source venv/bin/activate
+sudo venv/bin/cfclient
+
+/******************************************************************************
+ * Model Deployment
+ *****************************************************************************/
+:~$ Command Sequence For Model conversion .h -> .bin
+cd ~/Projects/RL-Flight-Crazyflie
+# Option 1: 
+docker run -it --rm \
+  -v $(pwd)/actors/actor_000000000300000.h
+  -v $(pwd)/build_firmware:/output \
+  arpllab/learning_to_fly_build_firmware
+# Option 2:
+docker build -t arpllab/learning_to_fly_build_firmware \
+       -f Dockerfile_build_firmware .
+ 
+:~$ Command Sequence For Deploying trained policies on a Crazyflie:
+	(after ensuring the model header file is in: crazyflie-clients-python/build_firmware)
+/*
+cd Projects/crazyflie-clients-python/
+source venv/bin/activate
+*/
+source ~/Projects/crazyflie-clients-python/venv/bin/activate
+sudo /home/shaked/Projects/crazyflie-clients-python/venv/bin/cfloader \
+    flash build_firmware/cf2.bin stm32-fw -w radio://0/80/2M
+
+#=============================================================================
+# Flights
+#=============================================================================
+First flights:
+1. Connect with the regular cfclient UI.
+2. Position estimation: you’ll need a flow/deck or external motion capture.
+
+:~$ Take off with stock controller, then switch to learned hover policy:
+python3 scripts/trigger.py --mode takeoff_and_switch --height 0.3
+
+:~$ Learned policy for take-off + hover:
+python3 scripts/trigger.py --mode hover_learned --height 0.3
+
+:~$ Full trajectory tracking:
+python3 scripts/trigger.py \
+  --mode trajectory_tracking \
+  --trajectory-scale 0.3 \
+  --trajectory-interval 2.5
