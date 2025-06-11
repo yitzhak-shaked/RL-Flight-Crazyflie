@@ -115,6 +115,7 @@ def mode_takeoff_and_switch(cf, args):
     set_param(cf, "rlt.wn", 1)
     set_param(cf, "rlt.target_z", 0)
     set_param(cf, "rlt.motor_warmup", 0)
+    flag = False
 
     input("Press enter to start hovering")
     prev = time.time()
@@ -140,6 +141,9 @@ def mode_takeoff_and_switch(cf, args):
         if now - start_time < args.transition_timeout:
             send_hover_packet(cf, args.height)
         else:
+            if not flag:
+                flag = True
+                print('\nSwitching to learned Policy!!!\n')
             send_learned_policy_packet(cf)
 
 
