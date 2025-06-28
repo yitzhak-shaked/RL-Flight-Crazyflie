@@ -3,6 +3,7 @@ import {Drone} from "./drone.js"
 import {CoordinateSystem} from "./coordinate_system.js"
 import {Simulator} from "./simulator.js"
 import {default_model} from "./default_model.js"
+import {PositionMarkers} from "./position_markers.js"
 
 
 window.onload = function(){
@@ -17,6 +18,11 @@ window.onload = function(){
   var canvasContainer = document.getElementById("canvasContainer")
   let simulator = new Simulator(canvasContainer, parameters)
   window.simulator = simulator
+
+  // Create and add position markers
+  window.positionMarkers = new PositionMarkers()
+  simulator.add(window.positionMarkers.get())
+  window.positionMarkers.setVisibility(false) // Hidden initially
 
   window.drones = {}
   window.origin_coordinate_systems = {}
@@ -75,7 +81,8 @@ window.onload = function(){
 
 
 
-  var button = document.getElementById("button")
+  var buttonHover = document.getElementById("button-hover")
+  var buttonPosition = document.getElementById("button-position")
   var seed_input = document.getElementById("seed-input")
   var animateButton = function(e) {
     e.preventDefault;
@@ -88,7 +95,8 @@ window.onload = function(){
     },700);
   };
 
-  button.addEventListener('click', animateButton, false);
+  buttonHover.addEventListener('click', animateButton, false);
+  buttonPosition.addEventListener('click', animateButton, false);
 
 
   document.addEventListener("keypress", function onPress(event) {
@@ -127,7 +135,9 @@ window.onload = function(){
         }
         else{
           if (channel === "status") {
-            button.innerHTML = "Training progress: " + Math.round(data.progress * 100) + "%"
+            const progressText = "Training progress: " + Math.round(data.progress * 100) + "%"
+            buttonHover.innerHTML = progressText
+            buttonPosition.innerHTML = progressText
             if(data.finished && !window.finished){
               window.finished = true;
               document.getElementById("canvasContainer").style.display = "none"
@@ -155,13 +165,44 @@ window.onload = function(){
     }
   };
 
-  button.addEventListener("click", event => {
+  buttonHover.addEventListener("click", event => {
     seed_input.style.display = "none"
-    button.disabled = true;
+    buttonHover.disabled = true;
+    buttonPosition.disabled = true;
+    
+    // Show position markers for hover mode
+    window.positionMarkers.setVisibility(true)
+    window.positionMarkers.showTargetForMode("hover")
+    
+    // Show legend
+    document.getElementById("legendContainer").style.display = "block"
+    
     ws.send(JSON.stringify({
       "channel": "startTraining",
       "data": {
-        "seed": parseInt(seed_input.value || 0)
+        "seed": parseInt(seed_input.value || 0),
+        "mode": "hover"
+      }
+    }))
+  }, false)
+
+  buttonPosition.addEventListener("click", event => {
+    seed_input.style.display = "none"
+    buttonHover.disabled = true;
+    buttonPosition.disabled = true;
+    
+    // Show position markers for position-to-position mode
+    window.positionMarkers.setVisibility(true)
+    window.positionMarkers.showTargetForMode("position-to-position")
+    
+    // Show legend
+    document.getElementById("legendContainer").style.display = "block"
+    
+    ws.send(JSON.stringify({
+      "channel": "startTraining",
+      "data": {
+        "seed": parseInt(seed_input.value || 0),
+        "mode": "position-to-position"
       }
     }))
   }, false)

@@ -33,6 +33,9 @@ class Simulator {
 
         this.scene.add(this.simulator)
 
+        // Add grid helper for better spatial orientation
+        this.addGrid()
+
         var light = new THREE.AmbientLight( 0xffffff,0.5 ); // soft white light
         this.scene.add(light);
         var directionalLight = new THREE.DirectionalLight( 0xffffff, 0.4 )
@@ -77,6 +80,25 @@ class Simulator {
     }
     remove(object){
         this.simulator.remove(object)
+    }
+    addGrid() {
+        // Create a grid on the XY plane (since simulator rotation transforms this to XZ ground plane)
+        const gridSize = 5 // 5x5 meter grid
+        const gridDivisions = 20 // 0.25m divisions
+        
+        // Main grid
+        const gridHelper = new THREE.GridHelper(gridSize, gridDivisions, 0x888888, 0xcccccc)
+        gridHelper.rotation.x = Math.PI / 2 // Rotate to align with XY plane in simulator coordinates
+        this.simulator.add(gridHelper)
+        
+        // Add axis lines for X, Y, Z
+        const axesHelper = new THREE.AxesHelper(2)
+        this.simulator.add(axesHelper)
+        
+        // Add smaller grid for finer detail near origin
+        const fineGrid = new THREE.GridHelper(1, 10, 0xaaaaaa, 0xdddddd)
+        fineGrid.rotation.x = Math.PI / 2
+        this.simulator.add(fineGrid)
     }
 }
 

@@ -43,6 +43,8 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     beast::websocket::stream<tcp::socket> ws_;
 
     using ABLATION_SPEC = learning_to_fly::config::DEFAULT_ABLATION_SPEC;
+    using POSITION_TO_POSITION_ABLATION_SPEC = learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC;
+    
     struct CONFIG: learning_to_fly::config::Config<ABLATION_SPEC>{
         using DEV_SPEC = rlt::devices::cpu::Specification<rlt::devices::math::CPU, rlt::devices::random::CPU, rlt::devices::logging::CPU>;
         using DEVICE = rlt::DEVICE_FACTORY<DEV_SPEC>;
@@ -50,9 +52,19 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
         static constexpr bool DETERMINISTIC_EVALUATION = false;
         static constexpr TI BASE_SEED = 0;
     };
+    
+    struct POSITION_TO_POSITION_CONFIG: learning_to_fly::config::Config<POSITION_TO_POSITION_ABLATION_SPEC>{
+        using DEV_SPEC = rlt::devices::cpu::Specification<rlt::devices::math::CPU, rlt::devices::random::CPU, rlt::devices::logging::CPU>;
+        using DEVICE = rlt::DEVICE_FACTORY<DEV_SPEC>;
+        static constexpr TI STEP_LIMIT = 300001;
+        static constexpr bool DETERMINISTIC_EVALUATION = false;
+        static constexpr TI BASE_SEED = 0;
+    };
+    
     using TI = CONFIG::TI;
 
-    learning_to_fly::TrainingState<CONFIG> ts;
+    learning_to_fly::TrainingState<CONFIG> ts_hover;
+    learning_to_fly::TrainingState<POSITION_TO_POSITION_CONFIG> ts_position_to_position;
     boost::asio::steady_timer timer_;
     std::chrono::time_point<std::chrono::high_resolution_clock> training_start, training_end;
     std::thread t;
@@ -65,6 +77,9 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     ENVIRONMENT env;
     rlt::devices::DefaultCPU device;
     rlt::MatrixDynamic<rlt::matrix::Specification<T, TI, 1, ENVIRONMENT::ACTION_DIM>> action;
+    
+    // Track current training mode
+    std::string current_training_mode = "hover";
 
 public:
     explicit websocket_session(tcp::socket socket) : ws_(std::move(socket)), timer_(ws_.get_executor()) {
@@ -119,16 +134,38 @@ public:
 
     void refresh(){
         TI new_trajectories = 0;
-        {
-            std::lock_guard<std::mutex> lock(ts.trajectories_mutex);
-            while(!ts.trajectories.empty() && ongoing_trajectories.size() <= 100){
-                ongoing_trajectories.push_back(ts.trajectories.front());
-                ts.trajectories.pop();
-                new_trajectories++;
+        TI current_step = 0;
+        bool current_finished = false;
+        
+        // Handle trajectory collection and status based on current mode
+        if (current_training_mode == "position-to-position") {
+            {
+                std::lock_guard<std::mutex> lock(ts_position_to_position.trajectories_mutex);
+                while(!ts_position_to_position.trajectories.empty() && ongoing_trajectories.size() <= 100){
+                    ongoing_trajectories.push_back(ts_position_to_position.trajectories.front());
+                    ts_position_to_position.trajectories.pop();
+                    new_trajectories++;
+                }
+                while(!ts_position_to_position.trajectories.empty()){
+                    ts_position_to_position.trajectories.pop();
+                }
             }
-            while(!ts.trajectories.empty()){
-                ts.trajectories.pop();
+            current_step = ts_position_to_position.step;
+            current_finished = ts_position_to_position.finished;
+        } else {
+            {
+                std::lock_guard<std::mutex> lock(ts_hover.trajectories_mutex);
+                while(!ts_hover.trajectories.empty() && ongoing_trajectories.size() <= 100){
+                    ongoing_trajectories.push_back(ts_hover.trajectories.front());
+                    ts_hover.trajectories.pop();
+                    new_trajectories++;
+                }
+                while(!ts_hover.trajectories.empty()){
+                    ts_hover.trajectories.pop();
+                }
             }
+            current_step = ts_hover.step;
+            current_finished = ts_hover.finished;
         }
         while(new_trajectories > 0){
             std::sort(idle_drones.begin(), idle_drones.end(), std::greater<TI>());
@@ -142,8 +179,8 @@ public:
                 constexpr TI height = 3;
                 TI drone_sub_id = drone_id % (width * height);
                 constexpr T scale = 0.3;
-                ui.origin[0] = (drone_id / 10)*scale - 5*scale;
-                ui.origin[1] = (drone_id % 10)*scale - 5*scale;
+                ui.origin[0] = 0; // All drones at same origin
+                ui.origin[1] = 0; // All drones at same origin
                 ui.origin[2] = 0;
 //                std::cout << "Adding drone at " << ui << std::endl;
                 ws_.write(net::buffer(rlt::rl::environments::multirotor::model_message(device, env, ui).dump()));
@@ -159,8 +196,8 @@ public:
                 constexpr TI height = 3;
                 TI drone_sub_id = drone_id % (width * height);
                 constexpr T scale = 0.3;
-                ui.origin[0] = (drone_id / 10)*scale - 5 * scale;
-                ui.origin[1] = (drone_id % 10)*scale - 5 * scale;
+                ui.origin[0] = 0; // All drones at same origin
+                ui.origin[1] = 0; // All drones at same origin
                 ui.origin[2] = 0;
 //                std::cout << "Adding drone at " << ui << std::endl;
                 ws_.write(net::buffer(rlt::rl::environments::multirotor::model_message(device, env, ui).dump()));
@@ -195,12 +232,12 @@ public:
         {
             nlohmann::json message;
             message["channel"] = "status";
-            message["data"]["progress"] = ((T)ts.step)/CONFIG::STEP_LIMIT;
+            message["data"]["progress"] = ((T)current_step)/CONFIG::STEP_LIMIT;
             message["data"]["time"] = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - training_start).count()/1000.0;
-            message["data"]["finished"] = ts.finished;
+            message["data"]["finished"] = current_finished;
             ws_.write(net::buffer(message.dump()));
         }
-        if(ts.finished){
+        if(current_finished){
             // terminate connection here
             ws_.async_close(beast::websocket::close_code::normal,
                             beast::bind_front_handler(
@@ -233,12 +270,32 @@ public:
 
             // start thread in lambda for training of ts (passed as a reference)
             typename CONFIG::TI seed = message["data"]["seed"];
+            
+            // Check if mode is specified in the message
+            current_training_mode = "hover"; // default
+            if (message["data"].contains("mode")) {
+                current_training_mode = message["data"]["mode"];
+            }
+            
             this->t = std::thread([seed, this](){
                 this->training_start = std::chrono::high_resolution_clock::now();
-                learning_to_fly::init(this->ts, seed);
-                for(TI step_i=0; step_i < CONFIG::STEP_LIMIT; step_i++){
-                    learning_to_fly::step(this->ts);
+                
+                if (this->current_training_mode == "position-to-position") {
+                    std::cout << "Starting Position-to-Position Training" << std::endl;
+                    std::cout << "Using position-to-position reward function with target at: (1.0, 1.0, 1.0)" << std::endl;
+                    learning_to_fly::init(this->ts_position_to_position, seed);
+                    for(TI step_i=0; step_i < POSITION_TO_POSITION_CONFIG::STEP_LIMIT; step_i++){
+                        learning_to_fly::step(this->ts_position_to_position);
+                    }
+                } else {
+                    std::cout << "Starting Hover Training" << std::endl;
+                    std::cout << "Using hover reward function (position around origin)" << std::endl;
+                    learning_to_fly::init(this->ts_hover, seed);
+                    for(TI step_i=0; step_i < CONFIG::STEP_LIMIT; step_i++){
+                        learning_to_fly::step(this->ts_hover);
+                    }
                 }
+                
                 training_end = std::chrono::high_resolution_clock::now();
                 std::cout << "Training took " << (std::chrono::duration_cast<std::chrono::milliseconds>(training_end - training_start).count())/1000 << "s" << std::endl;
 

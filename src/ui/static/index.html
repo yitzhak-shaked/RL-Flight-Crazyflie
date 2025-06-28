@@ -29,10 +29,23 @@
 		<div style="text-align: center; margin-bottom: 0.6em;">
 			<input id="seed-input" class="fancy-number-input" type="number" placeholder="seed">
 		</div>
-		<div>
-			<button id="button" class="fancy-button">Start Training</button>
+		<div style="margin-bottom: 0.5em;">
+			<button id="button-hover" class="fancy-button">Start Hover Training</button>
+		</div>
+		<div style="margin-bottom: 0.5em;">
+			<button id="button-position" class="fancy-button">Start Position-to-Position Training</button>
 		</div>
 		<div id="infoContainer"></div>
+	</div>
+	<div id="legendContainer" style="position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.7); color: white; padding: 10px; border-radius: 5px; font-family: Arial, sans-serif; font-size: 12px; display: none;">
+		<h4 style="margin: 0 0 10px 0; color: #fff;">Position Markers</h4>
+		<div style="margin-bottom: 5px;"><span style="color: #00ff00;">●</span> <strong>Green:</strong> Common Spawn Area (all drones spawn ±0.2m from origin)</div>
+		<div style="margin-bottom: 5px;"><span style="color: #ff0000;">●</span> <strong>Red:</strong> Target Position (1.0, 1.0, 1.0)</div>
+		<div style="margin-bottom: 5px;"><span style="color: #ff0000;">○</span> <strong>Circle:</strong> Success Radius (0.2m)</div>
+		<div style="font-style: italic; margin-top: 8px; font-size: 10px;">
+			Hover: Learn to stay in green area<br>
+			Position-to-Position: Fly from green to red
+		</div>
 	</div>
 	</body>
 </html>
