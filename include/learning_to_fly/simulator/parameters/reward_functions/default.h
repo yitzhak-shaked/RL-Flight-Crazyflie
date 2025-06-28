@@ -502,6 +502,30 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions {
             0.0, // action
     };
 
+    // Position-to-position learning with hover-like parameters for better convergence
+    template<typename T>
+    constexpr PositionToPosition<T> reward_position_to_position_hover_like = {
+            // Base Squared parameters - identical to reward_squared_position_only_torque
+            false, // non-negative
+            0.5, // scale
+            2, // constant
+            0, // termination penalty
+            5, // position - same as hover
+            5, // orientation - same as hover
+            0.01, // linear_velocity - same as hover
+            0, // angular_velocity - same as hover (no penalty)
+            0, // linear_acceleration - same as hover
+            0, // angular_acceleration - same as hover
+            RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE, // action_baseline
+            0.01, // action - same as hover
+            
+            // PositionToPosition-specific parameters
+            {learning_to_fly::constants::TARGET_POSITION_X<T>, learning_to_fly::constants::TARGET_POSITION_Y<T>, learning_to_fly::constants::TARGET_POSITION_Z<T>}, // target_pos - using global constants
+            0.1, // target_radius (10cm radius for "reached target") 
+            0.5, // velocity_reward_scale - small bonus for progress
+            false  // use_target_progress - keep it simple like hover
+    };
+
     // Position-to-Position Learning Reward Functions
     template<typename T>
     constexpr PositionToPosition<T> reward_position_to_position_basic = {

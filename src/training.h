@@ -69,6 +69,9 @@ namespace learning_to_fly{
                       << learning_to_fly::constants::TARGET_POSITION_X<T> << ", "
                       << learning_to_fly::constants::TARGET_POSITION_Y<T> << ", "
                       << learning_to_fly::constants::TARGET_POSITION_Z<T> << ")" << std::endl;
+            std::cout << "\t" << "Using position-to-position reward (hover-like parameters)" << std::endl;
+        } else {
+            std::cout << "\t" << "Using hover reward function" << std::endl;
         }
     }
 

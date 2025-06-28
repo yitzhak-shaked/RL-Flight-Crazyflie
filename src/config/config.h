@@ -48,6 +48,12 @@ namespace learning_to_fly{
             };
 
             using TD3_PARAMETERS = TD3PendulumParameters;
+            
+            // Path to actor checkpoint file for weight initialization
+            // When empty (""), uses random weight initialization
+            // When set to a valid .h file path, loads weights from that checkpoint
+            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hoverActor_000000000300000.h";
+
 
             using ACTOR_CRITIC_CONFIG = ActorAndCritic<T, TI, ENVIRONMENT, TD3_PARAMETERS>;
             static constexpr bool ASYMMETRIC_OBSERVATIONS = ACTOR_CRITIC_CONFIG::ASYMMETRIC_OBSERVATIONS;

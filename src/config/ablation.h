@@ -12,7 +12,7 @@ namespace learning_to_fly::config{
         static constexpr bool EXPLORATION_NOISE_DECAY = true;
     };
 
-    // New ablation spec for position-to-position learning
+    // New ablation spec for position-to-position learning - identical to hover training
     struct POSITION_TO_POSITION_ABLATION_SPEC{
         static constexpr bool DISTURBANCE = true;
         static constexpr bool OBSERVATION_NOISE = true;
@@ -21,7 +21,7 @@ namespace learning_to_fly::config{
         static constexpr bool ACTION_HISTORY = true;
         static constexpr bool ENABLE_CURRICULUM = true;
         static constexpr bool RECALCULATE_REWARDS = true;
-        static constexpr bool USE_INITIAL_REWARD_FUNCTION = false; // Use position-to-position reward
+        static constexpr bool USE_INITIAL_REWARD_FUNCTION = true; // Use hover reward structure
         static constexpr bool USE_POSITION_TO_POSITION_REWARD = true; // New flag
         static constexpr bool INIT_NORMAL = true;
         static constexpr bool EXPLORATION_NOISE_DECAY = true;

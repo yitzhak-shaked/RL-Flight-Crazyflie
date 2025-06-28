@@ -24,6 +24,21 @@ window.onload = function(){
   simulator.add(window.positionMarkers.get())
   window.positionMarkers.setVisibility(false) // Hidden initially
 
+  // Update legend with target position once loaded
+  function updateLegendTargetPosition() {
+    if (window.positionMarkers.targetPosition) {
+      const targetElement = document.getElementById('target-position')
+      if (targetElement) {
+        const pos = window.positionMarkers.targetPosition
+        targetElement.textContent = `(${pos[0]}, ${pos[1]}, ${pos[2]})`
+      }
+    } else {
+      // Retry after a short delay if not loaded yet
+      setTimeout(updateLegendTargetPosition, 100)
+    }
+  }
+  updateLegendTargetPosition()
+
   window.drones = {}
   window.origin_coordinate_systems = {}
 

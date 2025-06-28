@@ -3,8 +3,28 @@ import * as THREE from "./lib/three.module.js"
 class PositionMarkers {
     constructor() {
         this.markers = new THREE.Group()
+        this.targetPosition = null // Will be loaded from server
         this.createInitialSpawnAreaMarker()
-        this.createTargetPositionMarkers()
+        this.loadTargetPositionFromServer()
+    }
+
+    async loadTargetPositionFromServer() {
+        try {
+            const response = await fetch('/config')
+            const config = await response.json()
+            this.targetPosition = [
+                config.targetPosition.x,
+                config.targetPosition.y,
+                config.targetPosition.z
+            ]
+            console.log('Loaded target position from server:', this.targetPosition)
+            this.createTargetPositionMarkers()
+        } catch (error) {
+            console.error('Failed to fetch target position from server, using fallback:', error)
+            // Fallback to a default position if server config fails
+            this.targetPosition = [0.0, 0.0, 0.0]
+            this.createTargetPositionMarkers()
+        }
     }
 
     createInitialSpawnAreaMarker() {
@@ -39,10 +59,15 @@ class PositionMarkers {
     }
 
     createTargetPositionMarkers() {
+        if (!this.targetPosition) {
+            console.warn('Target position not loaded yet, skipping marker creation')
+            return
+        }
+
         // Target positions from the reward functions
-        // NOTE: BASIC TARGET position should match TARGET_POSITION_* constants in src/constants.h
+        // BASIC TARGET position comes from server config (src/constants.h)
         const targets = [
-            { pos: [0.0, 0.0, 0.0], name: "BASIC TARGET", color: 0xff0000, radius: 0.2 },
+            { pos: this.targetPosition, name: "BASIC TARGET", color: 0xff0000, radius: 0.2 },
             { pos: [2.0, 0.0, 1.0], name: "AGGRESSIVE TARGET", color: 0xff6600, radius: 0.15 },
             { pos: [0.5, 0.5, 0.8], name: "CONSERVATIVE TARGET", color: 0xff9999, radius: 0.3 }
         ]
@@ -123,6 +148,11 @@ class PositionMarkers {
 
     // Show only the current target based on training mode
     showTargetForMode(mode) {
+        if (!this.targetPosition) {
+            console.warn('Target position not loaded yet, cannot show target for mode')
+            return
+        }
+
         // Hide all target-related markers first
         this.markers.children.forEach(child => {
             // Keep spawn area and origin always visible
@@ -133,12 +163,11 @@ class PositionMarkers {
             
             // Show/hide targets based on mode
             if (mode === "position-to-position") {
-                // Show only the basic target (0,0,0) for position-to-position mode
-                const isBasicTarget = child.position.x === 0.0 && child.position.y === 0.0 && child.position.z === 0.0
-                const isNearBasicTarget = Math.abs(child.position.x - 0.0) < 0.01 && 
-                                        Math.abs(child.position.y - 0.0) < 0.01 && 
-                                        Math.abs(child.position.z - 0.0) < 0.01
-                child.visible = isBasicTarget || isNearBasicTarget
+                // Show only the basic target (from constants.h) for position-to-position mode
+                const isNearBasicTarget = Math.abs(child.position.x - this.targetPosition[0]) < 0.01 && 
+                                        Math.abs(child.position.y - this.targetPosition[1]) < 0.01 && 
+                                        Math.abs(child.position.z - this.targetPosition[2]) < 0.01
+                child.visible = isNearBasicTarget
             } else {
                 // For hover mode, hide all targets
                 child.visible = false

@@ -37,13 +37,13 @@ namespace parameters{
             using ABLATION_SPEC = T_ABLATION_SPEC;
             static constexpr auto initial_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_squared_position_only_torque<T>;
             static constexpr auto target_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_squared_position_only_torque_curriculum_target<T>;
-            static constexpr auto position_to_position_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_position_to_position_basic<T>;
+            static constexpr auto position_to_position_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_position_to_position_hover_like<T>;
             
             // Select reward function based on ablation spec
             template<typename T_SPEC>
             static constexpr auto get_reward_function() {
                 if constexpr (std::is_same_v<T_SPEC, learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC>) {
-                    // This will be used for position-to-position training
+                    // Use hover-like parameters for position-to-position training
                     return position_to_position_reward_function;
                 } else {
                     // This will be used for hover training

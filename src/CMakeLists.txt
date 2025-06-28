@@ -1,4 +1,3 @@
-
 if(RL_TOOLS_ENABLE_JSON AND RL_TOOLS_ENABLE_BOOST_BEAST)
 find_package(Boost REQUIRED)
 message(STATUS "Boost version: ${Boost_VERSION}")
@@ -10,6 +9,8 @@ target_link_libraries(
         learning_to_fly
         Boost::boost
 )
+# Enable checkpoint initialization for UI target
+target_compile_definitions(ui PRIVATE ACTOR_CHECKPOINT_FILE="../actors/hoverActor_000000000300000.h")
 endif()
 
 add_executable(training_headless training.cpp)
@@ -19,6 +20,9 @@ target_link_libraries(
         rl_tools
         learning_to_fly
 )
+# Uncomment and modify the next line to enable checkpoint initialization
+target_compile_definitions(training_headless PRIVATE ACTOR_CHECKPOINT_FILE="../actors/hoverActor_000000000300000.h")
+
 add_executable(training_benchmark training.cpp)
 target_link_libraries(
         training_benchmark

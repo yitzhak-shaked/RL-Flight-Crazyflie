@@ -20,6 +20,11 @@ namespace rlt = rl_tools;
 #include "../training.h"
 #include "../constants.h"
 
+// Include checkpoint file if path is specified at compile time
+#ifdef ACTOR_CHECKPOINT_FILE
+#include ACTOR_CHECKPOINT_FILE
+#endif
+
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
 namespace net = boost::asio;            // from <boost/asio.hpp>
@@ -288,6 +293,20 @@ public:
                               << learning_to_fly::constants::TARGET_POSITION_Y<T> << ", "
                               << learning_to_fly::constants::TARGET_POSITION_Z<T> << ")" << std::endl;
                     learning_to_fly::init(this->ts_position_to_position, seed);
+                    
+                    // Load checkpoint if available
+                    constexpr bool has_checkpoint_path = (std::string_view(POSITION_TO_POSITION_CONFIG::ACTOR_CHECKPOINT_INIT_PATH).length() > 0);
+                    if constexpr (has_checkpoint_path) {
+                        #ifdef ACTOR_CHECKPOINT_FILE
+                        std::cout << "Loading actor weights from checkpoint: " << POSITION_TO_POSITION_CONFIG::ACTOR_CHECKPOINT_INIT_PATH << std::endl;
+                        rlt::copy(this->ts_position_to_position.device, this->ts_position_to_position.device, rl_tools::checkpoint::actor::model, this->ts_position_to_position.actor_critic.actor);
+                        std::cout << "Actor weights loaded successfully." << std::endl;
+                        #else
+                        std::cerr << "Warning: Checkpoint path specified (" << POSITION_TO_POSITION_CONFIG::ACTOR_CHECKPOINT_INIT_PATH 
+                                  << ") but no checkpoint file included at compile time. Using random initialization." << std::endl;
+                        #endif
+                    }
+                    
                     for(TI step_i=0; step_i < POSITION_TO_POSITION_CONFIG::STEP_LIMIT; step_i++){
                         learning_to_fly::step(this->ts_position_to_position);
                     }
@@ -295,6 +314,20 @@ public:
                     std::cout << "Starting Hover Training" << std::endl;
                     std::cout << "Using hover reward function (position around origin)" << std::endl;
                     learning_to_fly::init(this->ts_hover, seed);
+                    
+                    // Load checkpoint if available
+                    constexpr bool has_checkpoint_path = (std::string_view(CONFIG::ACTOR_CHECKPOINT_INIT_PATH).length() > 0);
+                    if constexpr (has_checkpoint_path) {
+                        #ifdef ACTOR_CHECKPOINT_FILE
+                        std::cout << "Loading actor weights from checkpoint: " << CONFIG::ACTOR_CHECKPOINT_INIT_PATH << std::endl;
+                        rlt::copy(this->ts_hover.device, this->ts_hover.device, rl_tools::checkpoint::actor::model, this->ts_hover.actor_critic.actor);
+                        std::cout << "Actor weights loaded successfully." << std::endl;
+                        #else
+                        std::cerr << "Warning: Checkpoint path specified (" << CONFIG::ACTOR_CHECKPOINT_INIT_PATH 
+                                  << ") but no checkpoint file included at compile time. Using random initialization." << std::endl;
+                        #endif
+                    }
+                    
                     for(TI step_i=0; step_i < CONFIG::STEP_LIMIT; step_i++){
                         learning_to_fly::step(this->ts_hover);
                     }
@@ -423,6 +456,17 @@ private:
                     <<  " seconds since the epoch.</p>\n"
                     <<  "</body>\n"
                     <<  "</html>\n";
+        }
+        else if(request_.target() == "/config"){
+            response_.set(http::field::content_type, "application/json");
+            beast::ostream(response_.body())
+                    << "{\n"
+                    << "  \"targetPosition\": {\n"
+                    << "    \"x\": " << learning_to_fly::constants::TARGET_POSITION_X<float> << ",\n"
+                    << "    \"y\": " << learning_to_fly::constants::TARGET_POSITION_Y<float> << ",\n"
+                    << "    \"z\": " << learning_to_fly::constants::TARGET_POSITION_Z<float> << "\n"
+                    << "  }\n"
+                    << "}\n";
         }
         else if(request_.target() == "/ws"){
             maybe_upgrade();
