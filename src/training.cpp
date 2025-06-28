@@ -5,7 +5,7 @@
 
 
 template <typename T_ABLATION_SPEC>
-void run(){
+void run() {
     using namespace learning_to_fly::config;
 
     using CONFIG = learning_to_fly::config::Config<T_ABLATION_SPEC>;
@@ -35,7 +35,7 @@ void run(){
 }
 
 
-int main(){
+int main() {
     run<learning_to_fly::config::DEFAULT_ABLATION_SPEC>();
     return 0;
 }

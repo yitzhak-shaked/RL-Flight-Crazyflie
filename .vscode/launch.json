@@ -68,11 +68,11 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "🌐 Train with Web UI",
+            "name": "🌐 Train with Web UI (Hover & Position-to-Position)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/ui",
-            "args": [],
+            "args": ["0.0.0.0", "8080"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],

@@ -1,6 +1,7 @@
 #ifndef RL_TOOLS_SRC_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_H
 #define RL_TOOLS_SRC_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_H
 
+#include <type_traits>
 #include <learning_to_fly/simulator/parameters/reward_functions/abs_exp.h>
 #include <learning_to_fly/simulator/parameters/reward_functions/squared.h>
 #include <learning_to_fly/simulator/parameters/reward_functions/absolute.h>
@@ -10,6 +11,11 @@
 #include <learning_to_fly/simulator/parameters/termination/default.h>
 
 #include <rl_tools/utils/generic/typing.h>
+
+// Forward declare the ablation specs to avoid circular dependency
+namespace learning_to_fly::config {
+    struct POSITION_TO_POSITION_ABLATION_SPEC;
+}
 
 namespace parameters{
     namespace rlt = rl_tools;
@@ -31,7 +37,21 @@ namespace parameters{
             using ABLATION_SPEC = T_ABLATION_SPEC;
             static constexpr auto initial_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_squared_position_only_torque<T>;
             static constexpr auto target_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_squared_position_only_torque_curriculum_target<T>;
-            static constexpr auto reward_function = ABLATION_SPEC::USE_INITIAL_REWARD_FUNCTION ? initial_reward_function : target_reward_function;
+            static constexpr auto position_to_position_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_position_to_position_basic<T>;
+            
+            // Select reward function based on ablation spec
+            template<typename T_SPEC>
+            static constexpr auto get_reward_function() {
+                if constexpr (std::is_same_v<T_SPEC, learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC>) {
+                    // This will be used for position-to-position training
+                    return position_to_position_reward_function;
+                } else {
+                    // This will be used for hover training
+                    return T_SPEC::USE_INITIAL_REWARD_FUNCTION ? initial_reward_function : target_reward_function;
+                }
+            }
+            
+            static constexpr auto reward_function = get_reward_function<ABLATION_SPEC>();
 
 
             using REWARD_FUNCTION_CONST = typename rl_tools::utils::typing::remove_cv_t<decltype(reward_function)>;

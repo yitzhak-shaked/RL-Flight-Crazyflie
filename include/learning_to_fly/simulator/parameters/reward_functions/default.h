@@ -3,8 +3,9 @@
 #include "sq_exp.h"
 #include "squared.h"
 #include "absolute.h"
+#include "position_to_position.h"
 #define RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE (0.334)
-namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
+namespace rl_tools::rl::environments::multirotor::parameters::reward_functions {
     template<typename T>
     constexpr AbsExp<T> reward_263 = {
         10,
@@ -495,5 +496,75 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
             0, // angular_acceleration
             RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE, // RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE
             0.0, // action
+    };
+
+    // Position-to-Position Learning Reward Functions
+    template<typename T>
+    constexpr PositionToPosition<T> reward_position_to_position_basic = {
+            // Base Squared parameters
+            false, // non-negative
+            0.5, // scale
+            2, // constant
+            0, // termination penalty
+            10, // position (higher weight for reaching target)
+            5, // orientation
+            0.1, // linear_velocity
+            0.05, // angular_velocity
+            0, // linear_acceleration
+            0, // angular_acceleration
+            RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE, // action_baseline
+            0.05, // action
+            
+            // PositionToPosition-specific parameters
+            {1.0, 1.0, 1.0}, // target_pos (default target at 1,1,1)
+            0.2, // target_radius (20cm radius for "reached target")
+            2.0, // velocity_reward_scale 
+            true  // use_target_progress
+    };
+
+    template<typename T>
+    constexpr PositionToPosition<T> reward_position_to_position_aggressive = {
+            // Base Squared parameters
+            false, // non-negative
+            0.8, // scale
+            3, // constant
+            -10, // termination penalty (penalty for crashing)
+            20, // position (very high weight for reaching target)
+            3, // orientation (lower weight on orientation)
+            0.2, // linear_velocity
+            0.1, // angular_velocity
+            0, // linear_acceleration
+            0, // angular_acceleration
+            RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE,
+            0.1, // action
+            
+            // PositionToPosition-specific parameters
+            {2.0, 0.0, 1.0}, // target_pos (2m forward, same height)
+            0.15, // target_radius (tighter tolerance)
+            3.0, // velocity_reward_scale (higher reward for progress)
+            true  // use_target_progress
+    };
+
+    template<typename T>
+    constexpr PositionToPosition<T> reward_position_to_position_conservative = {
+            // Base Squared parameters
+            false, // non-negative
+            0.3, // scale
+            1.5, // constant  
+            0, // termination penalty
+            8, // position (moderate weight for target)
+            8, // orientation (higher weight on stable orientation)
+            0.05, // linear_velocity (prefer slower motion)
+            0.02, // angular_velocity
+            0.01, // linear_acceleration (small penalty on acceleration)
+            0.01, // angular_acceleration
+            RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE,
+            0.02, // action (small action penalty)
+            
+            // PositionToPosition-specific parameters
+            {0.5, 0.5, 0.8}, // target_pos (closer, easier target)
+            0.3, // target_radius (larger tolerance)
+            1.0, // velocity_reward_scale
+            true  // use_target_progress
     };
 }

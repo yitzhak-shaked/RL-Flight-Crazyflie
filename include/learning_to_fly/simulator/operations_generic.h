@@ -14,12 +14,12 @@
 #define RL_TOOLS_FUNCTION_PLACEMENT
 #endif
 
-namespace rl_tools{
+namespace rl_tools {
     // State arithmetic for RK4 integration
     // scalar multiply
     template<typename DEVICE, typename T, typename TI, typename T2>
-    RL_TOOLS_FUNCTION_PLACEMENT static void scalar_multiply(DEVICE& device, const typename rl::environments::multirotor::StateBase<T, TI>& state, T2 scalar, typename rl::environments::multirotor::StateBase<T, TI>& out){
-        for(int i = 0; i < 3; ++i){
+    RL_TOOLS_FUNCTION_PLACEMENT static void scalar_multiply(DEVICE& device, const typename rl::environments::multirotor::StateBase<T, TI>& state, T2 scalar, typename rl::environments::multirotor::StateBase<T, TI>& out) {
+        for(int i = 0; i < 3; ++i) {
             out.position[i]         = scalar * state.position[i]        ;
             out.orientation[i]      = scalar * state.orientation[i]     ;
             out.linear_velocity[i]  = scalar * state.linear_velocity[i] ;

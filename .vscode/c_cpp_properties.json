@@ -10,7 +10,9 @@
                 "/usr/include/**",
                 "/usr/local/include/**"
             ],
-            "defines": [],
+            "defines": [
+                "RL_TOOLS_USE_THIS_VERSION=1"
+            ],
             "compilerPath": "/usr/bin/g++",
             "cStandard": "c17",
             "cppStandard": "c++17",
