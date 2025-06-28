@@ -4,6 +4,10 @@
 #include "squared.h"
 #include "absolute.h"
 #include "position_to_position.h"
+
+// Include constants for target position
+#include "../../../../../src/constants.h"
+
 #define RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE (0.334)
 namespace rl_tools::rl::environments::multirotor::parameters::reward_functions {
     template<typename T>
@@ -516,7 +520,7 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions {
             0.05, // action
             
             // PositionToPosition-specific parameters
-            {1.0, 1.0, 1.0}, // target_pos (default target at 1,1,1)
+            {learning_to_fly::constants::TARGET_POSITION_X<T>, learning_to_fly::constants::TARGET_POSITION_Y<T>, learning_to_fly::constants::TARGET_POSITION_Z<T>}, // target_pos - using global constants
             0.2, // target_radius (20cm radius for "reached target")
             2.0, // velocity_reward_scale 
             true  // use_target_progress
@@ -539,7 +543,7 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions {
             0.1, // action
             
             // PositionToPosition-specific parameters
-            {2.0, 0.0, 1.0}, // target_pos (2m forward, same height)
+            {learning_to_fly::constants::TARGET_POSITION_X<T>, learning_to_fly::constants::TARGET_POSITION_Y<T>, learning_to_fly::constants::TARGET_POSITION_Z<T>}, // target_pos
             0.15, // target_radius (tighter tolerance)
             3.0, // velocity_reward_scale (higher reward for progress)
             true  // use_target_progress
@@ -562,7 +566,7 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions {
             0.02, // action (small action penalty)
             
             // PositionToPosition-specific parameters
-            {0.5, 0.5, 0.8}, // target_pos (closer, easier target)
+            {learning_to_fly::constants::TARGET_POSITION_X<T>, learning_to_fly::constants::TARGET_POSITION_Y<T>, learning_to_fly::constants::TARGET_POSITION_Z<T>}, // target_pos
             0.3, // target_radius (larger tolerance)
             1.0, // velocity_reward_scale
             true  // use_target_progress

@@ -6,6 +6,7 @@ namespace rlt = RL_TOOLS_NAMESPACE_WRAPPER ::rl_tools;
 #include <learning_to_fly/simulator/metrics.h>
 
 #include "config/config.h"
+#include "constants.h"
 
 #include <rl_tools/rl/algorithms/td3/loop.h>
 
@@ -62,6 +63,10 @@ namespace learning_to_fly{
         std::cout << "\t" << "Observation dim: " << CONFIG::ENVIRONMENT::OBSERVATION_DIM << std::endl;
         std::cout << "\t" << "Observation dim privileged: " << CONFIG::ENVIRONMENT::OBSERVATION_DIM_PRIVILEGED << std::endl;
         std::cout << "\t" << "Action dim: " << CONFIG::ENVIRONMENT::ACTION_DIM << std::endl;
+        std::cout << "\t" << "Target position: (" 
+                  << learning_to_fly::constants::TARGET_POSITION_X<T> << ", "
+                  << learning_to_fly::constants::TARGET_POSITION_Y<T> << ", "
+                  << learning_to_fly::constants::TARGET_POSITION_Z<T> << ")" << std::endl;
     }
 
     template <typename CONFIG>

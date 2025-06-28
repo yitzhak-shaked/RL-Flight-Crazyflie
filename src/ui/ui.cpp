@@ -18,6 +18,7 @@ namespace rlt = rl_tools;
 
 //#include "../td3/parameters.h"
 #include "../training.h"
+#include "../constants.h"
 
 namespace beast = boost::beast;         // from <boost/beast.hpp>
 namespace http = beast::http;           // from <boost/beast/http.hpp>
@@ -282,7 +283,10 @@ public:
                 
                 if (this->current_training_mode == "position-to-position") {
                     std::cout << "Starting Position-to-Position Training" << std::endl;
-                    std::cout << "Using position-to-position reward function with target at: (1.0, 1.0, 1.0)" << std::endl;
+                    std::cout << "Using position-to-position reward function with target at: (" 
+                              << learning_to_fly::constants::TARGET_POSITION_X<T> << ", "
+                              << learning_to_fly::constants::TARGET_POSITION_Y<T> << ", "
+                              << learning_to_fly::constants::TARGET_POSITION_Z<T> << ")" << std::endl;
                     learning_to_fly::init(this->ts_position_to_position, seed);
                     for(TI step_i=0; step_i < POSITION_TO_POSITION_CONFIG::STEP_LIMIT; step_i++){
                         learning_to_fly::step(this->ts_position_to_position);

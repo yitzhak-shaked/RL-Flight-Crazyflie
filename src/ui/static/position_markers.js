@@ -40,8 +40,9 @@ class PositionMarkers {
 
     createTargetPositionMarkers() {
         // Target positions from the reward functions
+        // NOTE: BASIC TARGET position should match TARGET_POSITION_* constants in src/constants.h
         const targets = [
-            { pos: [1.0, 1.0, 1.0], name: "BASIC TARGET", color: 0xff0000, radius: 0.2 },
+            { pos: [0.0, 0.0, 0.0], name: "BASIC TARGET", color: 0xff0000, radius: 0.2 },
             { pos: [2.0, 0.0, 1.0], name: "AGGRESSIVE TARGET", color: 0xff6600, radius: 0.15 },
             { pos: [0.5, 0.5, 0.8], name: "CONSERVATIVE TARGET", color: 0xff9999, radius: 0.3 }
         ]
@@ -132,11 +133,11 @@ class PositionMarkers {
             
             // Show/hide targets based on mode
             if (mode === "position-to-position") {
-                // Show only the basic target (1,1,1) for position-to-position mode
-                const isBasicTarget = child.position.x === 1.0 && child.position.y === 1.0 && child.position.z === 1.0
-                const isNearBasicTarget = Math.abs(child.position.x - 1.0) < 0.01 && 
-                                        Math.abs(child.position.y - 1.0) < 0.01 && 
-                                        Math.abs(child.position.z - 1.0) < 0.01
+                // Show only the basic target (0,0,0) for position-to-position mode
+                const isBasicTarget = child.position.x === 0.0 && child.position.y === 0.0 && child.position.z === 0.0
+                const isNearBasicTarget = Math.abs(child.position.x - 0.0) < 0.01 && 
+                                        Math.abs(child.position.y - 0.0) < 0.01 && 
+                                        Math.abs(child.position.z - 0.0) < 0.01
                 child.visible = isBasicTarget || isNearBasicTarget
             } else {
                 // For hover mode, hide all targets
