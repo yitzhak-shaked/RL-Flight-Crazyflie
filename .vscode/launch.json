@@ -5,7 +5,7 @@
         // TRAINING CONFIGURATIONS (DEBUG MODE)
         // =============================================================================
         {
-            "name": "🚀🐛 Train RL Policy (Headless - Debug)",
+            "name": "🚀 Train RL Policy (Headless - Debug)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/training_headless",
@@ -26,7 +26,7 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "🎯🐛 Train RL Policy (Benchmark - Debug)",
+            "name": "🎯 Train RL Policy (Benchmark - Debug)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/training_benchmark",
@@ -50,7 +50,7 @@
         // TRAINING CONFIGURATIONS (OPTIMIZED - NO DEBUG)
         // =============================================================================
         {
-            "name": "🚀🚫🐛 Train RL Policy (Headless - Optimized)",
+            "name": "🚀 Train RL Policy (Headless - Optimized) No Debug 🚫🪲",
             "type": "node-terminal",
             "request": "launch",
             "command": "OPENBLAS_NUM_THREADS=1 ./build/src/training_headless",
@@ -58,7 +58,7 @@
             "preLaunchTask": "Build Training Headless"
         },
         {
-            "name": "🎯🚫� Train RL Policy (Benchmark - Optimized)",
+            "name": "🎯� Train RL Policy (Benchmark - Optimized) No Debug 🚫🪲",
             "type": "node-terminal",
             "request": "launch",
             "command": "OPENBLAS_NUM_THREADS=1 ./build/src/training_benchmark",
@@ -66,7 +66,7 @@
             "preLaunchTask": "Build Training Benchmark"
         },
         {
-            "name": "��🔥🐛 Simple CUDA Training (Debug)",
+            "name": "��🔥 Simple CUDA Training (Debug)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/training_simple_cuda",
@@ -87,7 +87,7 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "🚀🔥🚫🐛 Simple CUDA Training (Optimized)",
+            "name": "🚀🔥 Simple CUDA Training (Optimized) No Debug 🚫🪲",
             "type": "node-terminal",
             "request": "launch",
             "command": "OPENBLAS_NUM_THREADS=1 ./build/src/training_simple_cuda",
@@ -95,7 +95,7 @@
             "preLaunchTask": "Build Simple CUDA Training"
         },
         {
-            "name": "🌐🐛 Train with Web UI (Debug)",
+            "name": "🌐 Train with Web UI (Debug)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/ui",
@@ -116,7 +116,7 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "🌐🚫🐛 Train with Web UI (Optimized)",
+            "name": "🌐 Train with Web UI (Optimized) No Debug 🚫🪲",
             "type": "node-terminal",
             "request": "launch",
             "command": "OPENBLAS_NUM_THREADS=1 ./build/src/ui",
@@ -124,7 +124,7 @@
             "preLaunchTask": "Build UI"
         },
         {
-            "name": "🔬🐛 Ablation Study (Debug)",
+            "name": "🔬 Ablation Study (Debug)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/ablation_study",
@@ -145,7 +145,7 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "🔬🚫🐛 Ablation Study (Optimized)",
+            "name": "🔬 Ablation Study (Optimized) No Debug 🚫🪲",
             "type": "node-terminal",
             "request": "launch",
             "command": "OPENBLAS_NUM_THREADS=1 ./build/src/ablation_study",
