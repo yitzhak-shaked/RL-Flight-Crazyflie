@@ -47,7 +47,23 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "🚀🔥 Simple CUDA Training",
+            "name": "⚡ Train RL Policy (Benchmark - Optimized)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "OPENBLAS_NUM_THREADS=1 ./build/src/training_benchmark",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build Training Benchmark"
+        },
+        {
+            "name": "🚀 Train RL Policy (Headless - Optimized)",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "OPENBLAS_NUM_THREADS=1 ./build/src/training_headless",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build Training Headless"
+        },
+        {
+            "name": "🎯🔥 Simple CUDA Training",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/training_simple_cuda",
