@@ -8,12 +8,19 @@
 #include <iostream>
 #include <memory>
 #include <string>
+#include <thread>
+#include <mutex>
+#include <atomic>
 #include <boost/beast/websocket.hpp>
 #include <filesystem>
 #include <fstream>
+#include <highfive/H5File.hpp>
 #include <rl_tools/operations/cpu_mux.h>
+#include <rl_tools/devices/cpu.h>
 #include <learning_to_fly/simulator/operations_cpu.h>
 #include <learning_to_fly/simulator/ui.h>
+#include <rl_tools/nn_models/operations_cpu.h>
+#include <rl_tools/nn_models/persist.h>
 namespace rlt = rl_tools;
 
 //#include "../td3/parameters.h"
@@ -45,6 +52,13 @@ namespace my_program_state
         return std::time(0);
     }
 }
+
+// Helper function for C++17 compatibility (since ends_with is C++20)
+bool ends_with(const std::string& str, const std::string& suffix) {
+    if (suffix.length() > str.length()) return false;
+    return str.compare(str.length() - suffix.length(), suffix.length(), suffix) == 0;
+}
+
 class websocket_session : public std::enable_shared_from_this<websocket_session> {
     beast::websocket::stream<tcp::socket> ws_;
 
@@ -86,12 +100,148 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     
     // Track current training mode
     std::string current_training_mode = "hover";
+    
+    // Actor evaluation state
+    bool is_evaluating = false;
+    std::string current_actor_path = "";
+    std::thread evaluation_thread;
+    std::atomic<bool> stop_evaluation{false};
+    
+    // Actor evaluation types
+    using ACTOR_TYPE = decltype(CONFIG::ACTOR_CRITIC_TYPE::actor);
+    ACTOR_TYPE evaluation_actor;
+    typename ACTOR_TYPE::template DoubleBuffer<1> actor_buffer;
+    bool actor_loaded = false;
 
 public:
     explicit websocket_session(tcp::socket socket) : ws_(std::move(socket)), timer_(ws_.get_executor()) {
         env.parameters = parameters::environment<T, TI, CONFIG::ABLATION_SPEC>::parameters;
         rlt::malloc(device, action);
+        rlt::malloc(device, evaluation_actor);
+        rlt::malloc(device, actor_buffer);
     }
+
+private:
+    bool load_actor_from_file(const std::string& actor_path) {
+        try {
+            if (ends_with(actor_path, ".h5")) {
+                // Load HDF5 actor
+                auto file = HighFive::File(actor_path, HighFive::File::ReadOnly);
+                rlt::load(device, evaluation_actor, file.getGroup("actor"));
+                actor_loaded = true;
+                std::cout << "Successfully loaded actor from: " << actor_path << std::endl;
+                return true;
+            } else {
+                std::cerr << "Unsupported actor file format: " << actor_path << std::endl;
+                return false;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error loading actor from " << actor_path << ": " << e.what() << std::endl;
+            return false;
+        }
+    }
+
+    void start_actor_evaluation(const std::string& actor_path) {
+        if (is_evaluating) {
+            stop_evaluation = true;
+            if (evaluation_thread.joinable()) {
+                evaluation_thread.join();
+            }
+        }
+
+        current_actor_path = actor_path;
+        
+        if (!load_actor_from_file(actor_path)) {
+            return;
+        }
+
+        stop_evaluation = false;
+        is_evaluating = true;
+        
+        evaluation_thread = std::thread([this]() {
+            evaluate_actor_loop();
+        });
+    }
+
+    void stop_actor_evaluation() {
+        if (is_evaluating) {
+            stop_evaluation = true;
+            if (evaluation_thread.joinable()) {
+                evaluation_thread.join();
+            }
+            is_evaluating = false;
+            
+            // Send stop message to frontend
+            nlohmann::json stop_message;
+            stop_message["channel"] = "evaluationStopped";
+            stop_message["data"] = {};
+            
+            ws_.write(net::buffer(stop_message.dump()));
+        }
+    }
+
+    void evaluate_actor_loop() {
+        const TI max_episode_steps = 600;
+        TI episode_count = 0;
+        auto rng = rlt::random::default_engine(typename CONFIG::DEVICE::SPEC::RANDOM(), 10);
+        
+        while (!stop_evaluation) {
+            // Create environment state
+            typename ENVIRONMENT::State state;
+            rlt::initial_state(device, env, state);
+            
+            // Create drone for visualization
+            TI drone_id = drone_id_counter++;
+            using UI = rlt::rl::environments::multirotor::UI<decltype(env)>;
+            UI ui;
+            ui.id = std::to_string(drone_id);
+            ui.origin[0] = 0;
+            ui.origin[1] = 0;
+            ui.origin[2] = 0;
+            
+            // Send addDrone message
+            ws_.write(net::buffer(rlt::rl::environments::multirotor::model_message(device, env, ui).dump()));
+            
+            // Run episode
+            for (TI step = 0; step < max_episode_steps && !stop_evaluation; step++) {
+                // Get observation
+                rlt::MatrixDynamic<rlt::matrix::Specification<T, TI, 1, ENVIRONMENT::OBSERVATION_DIM>> observation;
+                rlt::malloc(device, observation);
+                rlt::observe(device, env, state, observation, rng);
+                
+                // Forward pass through actor
+                rlt::evaluate(device, evaluation_actor, observation, action, actor_buffer);
+                
+                // Step environment
+                typename ENVIRONMENT::State next_state;
+                rlt::step(device, env, state, action, next_state, rng);
+                state = next_state;
+                
+                // Send state to frontend
+                ws_.write(net::buffer(rlt::rl::environments::multirotor::state_message(device, ui, state).dump()));
+                
+                rlt::free(device, observation);
+                
+                // Sleep for visualization
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+            }
+            
+            // Remove drone
+            using UI = rlt::rl::environments::multirotor::UI<decltype(env)>;
+            UI remove_ui;
+            remove_ui.id = ui.id;
+            ws_.write(net::buffer(rlt::rl::environments::multirotor::remove_drone_message(device, remove_ui).dump()));
+            
+            episode_count++;
+            
+            // Wait a bit before next episode
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+        
+        is_evaluating = false;
+    }
+
+public:
 
     template<class Body>
     void run(http::request<Body>&& req) {
@@ -339,6 +489,22 @@ public:
             });
             t.detach();
         }
+        else if(message["channel"] == "evaluateActor"){
+            std::cout << "evaluateActor message received" << std::endl;
+            
+            std::string action = message["data"]["action"];
+            
+            if (action == "restart") {
+                std::string actor_path = message["data"]["actorPath"];
+                std::cout << "Starting actor evaluation with: " << actor_path << std::endl;
+                start_actor_evaluation(actor_path);
+                start(10); // Start refresh timer
+            }
+            else if (action == "stop") {
+                std::cout << "Stopping actor evaluation" << std::endl;
+                stop_actor_evaluation();
+            }
+        }
 
         // read message to string:
         bool send_message = false;
@@ -467,6 +633,52 @@ private:
                     << "    \"z\": " << learning_to_fly::constants::TARGET_POSITION_Z<float> << "\n"
                     << "  }\n"
                     << "}\n";
+        }
+        else if(request_.target() == "/actors"){
+            response_.result(http::status::ok);
+            response_.set(http::field::content_type, "application/json");
+            
+            nlohmann::json actors_array = nlohmann::json::array();
+            
+            // Scan ./actors directory
+            std::filesystem::path actors_dir = "./actors";
+            if(std::filesystem::exists(actors_dir) && std::filesystem::is_directory(actors_dir)){
+                for(const auto& entry : std::filesystem::directory_iterator(actors_dir)){
+                    if(entry.is_regular_file()){
+                        std::string filename = entry.path().filename().string();
+                        if(ends_with(filename, ".h5")){
+                            nlohmann::json actor_obj;
+                            actor_obj["name"] = "actors/" + filename;
+                            actor_obj["path"] = entry.path().string();
+                            actors_array.push_back(actor_obj);
+                        }
+                    }
+                }
+            }
+            
+            // Scan ./checkpoints/multirotor_td3 directory
+            std::filesystem::path checkpoints_dir = "./checkpoints/multirotor_td3";
+            if(std::filesystem::exists(checkpoints_dir) && std::filesystem::is_directory(checkpoints_dir)){
+                for(const auto& exp_entry : std::filesystem::directory_iterator(checkpoints_dir)){
+                    if(exp_entry.is_directory()){
+                        std::string exp_name = exp_entry.path().filename().string();
+                        for(const auto& file_entry : std::filesystem::directory_iterator(exp_entry)){
+                            if(file_entry.is_regular_file()){
+                                std::string filename = file_entry.path().filename().string();
+                                if(ends_with(filename, ".h5")){
+                                    nlohmann::json actor_obj;
+                                    actor_obj["name"] = "checkpoints/" + exp_name + "/" + filename;
+                                    actor_obj["path"] = file_entry.path().string();
+                                    actors_array.push_back(actor_obj);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+            
+            std::string json_response = actors_array.dump();
+            beast::ostream(response_.body()) << json_response;
         }
         else if(request_.target() == "/ws"){
             maybe_upgrade();

@@ -98,7 +98,80 @@ window.onload = function(){
 
   var buttonHover = document.getElementById("button-hover")
   var buttonPosition = document.getElementById("button-position")
+  var buttonEvaluate = document.getElementById("button-evaluate")
+  var buttonEvalRestart = document.getElementById("button-eval-restart")
+  var buttonEvalStop = document.getElementById("button-eval-stop")
+  var buttonEvalExit = document.getElementById("button-eval-exit")
+  var actorSelect = document.getElementById("actor-select")
+  var evaluateActorContainer = document.getElementById("evaluateActorContainer")
+  var controlContainer = document.getElementById("controlContainer")
   var seed_input = document.getElementById("seed-input")
+  
+  // Actor evaluation state
+  var isEvaluating = false
+  var availableActors = []
+  var currentEvaluationMode = null
+  
+  // Load available actors from server
+  async function loadAvailableActors() {
+    try {
+      const response = await fetch('/actors')
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`)
+      }
+      const actors = await response.json()
+      availableActors = actors
+      updateActorSelect()
+    } catch (error) {
+      console.error('Failed to load actors:', error)
+      actorSelect.innerHTML = '<option value="">Error loading actors</option>'
+    }
+  }
+  
+  // Update actor select dropdown
+  function updateActorSelect() {
+    if (availableActors.length === 0) {
+      actorSelect.innerHTML = '<option value="">No actors available</option>'
+      return
+    }
+    
+    let html = '<option value="">Select an actor...</option>'
+    availableActors.forEach(actor => {
+      html += `<option value="${actor.path}">${actor.name}</option>`
+    })
+    actorSelect.innerHTML = html
+  }
+  
+  // Show actor evaluation UI
+  function showActorEvaluationUI() {
+    controlContainer.style.display = 'none'
+    evaluateActorContainer.style.display = 'block'
+    
+    loadAvailableActors()
+    
+    // Show position markers for evaluation
+    window.positionMarkers.setVisibility(true)
+    window.positionMarkers.showTargetForMode("position-to-position")
+    document.getElementById("legendContainer").style.display = "block"
+  }
+  
+  // Hide actor evaluation UI and return to main menu
+  function hideActorEvaluationUI() {
+    evaluateActorContainer.style.display = 'none'
+    controlContainer.style.display = 'block'
+    isEvaluating = false
+    currentEvaluationMode = null
+    
+    // Hide position markers
+    window.positionMarkers.setVisibility(false)
+    document.getElementById("legendContainer").style.display = "none"
+    
+    // Reset button states
+    buttonHover.disabled = false
+    buttonPosition.disabled = false
+    buttonEvaluate.disabled = false
+    seed_input.style.display = "block"
+  }
   var animateButton = function(e) {
     e.preventDefault;
     //reset animation
@@ -112,6 +185,10 @@ window.onload = function(){
 
   buttonHover.addEventListener('click', animateButton, false);
   buttonPosition.addEventListener('click', animateButton, false);
+  buttonEvaluate.addEventListener('click', animateButton, false);
+  buttonEvalRestart.addEventListener('click', animateButton, false);
+  buttonEvalStop.addEventListener('click', animateButton, false);
+  buttonEvalExit.addEventListener('click', animateButton, false);
 
 
   document.addEventListener("keypress", function onPress(event) {
@@ -150,17 +227,31 @@ window.onload = function(){
         }
         else{
           if (channel === "status") {
-            const progressText = "Training progress: " + Math.round(data.progress * 100) + "%"
-            buttonHover.innerHTML = progressText
-            buttonPosition.innerHTML = progressText
-            if(data.finished && !window.finished){
-              window.finished = true;
-              document.getElementById("canvasContainer").style.display = "none"
-              document.getElementById("controlContainer").style.display = "none"
-              var resultContainer = document.getElementById("resultContainer")
-              // resultContainer.innerHTML = "Total training time: " + Math.round(data.time) + "s"
-              resultContainer.innerHTML = "Finished"
-              resultContainer.style.display = "block"
+            if (isEvaluating) {
+              // Update evaluation info
+              const evalInfo = document.getElementById("evaluateInfoContainer")
+              evalInfo.innerHTML = `<p style="font-family: Arial, sans-serif;">Evaluating actor...</p>`
+            } else {
+              // Update training progress
+              const progressText = "Training progress: " + Math.round(data.progress * 100) + "%"
+              buttonHover.innerHTML = progressText
+              buttonPosition.innerHTML = progressText
+              if(data.finished && !window.finished){
+                window.finished = true;
+                document.getElementById("canvasContainer").style.display = "none"
+                document.getElementById("controlContainer").style.display = "none"
+                var resultContainer = document.getElementById("resultContainer")
+                resultContainer.innerHTML = "Finished"
+                resultContainer.style.display = "block"
+              }
+            }
+          }
+          else{
+            if (channel === "evaluationStopped") {
+              // Reset evaluation UI state
+              const evalInfo = document.getElementById("evaluateInfoContainer")
+              evalInfo.innerHTML = ""
+              isEvaluating = false
             }
           }
         }
@@ -220,5 +311,73 @@ window.onload = function(){
         "mode": "position-to-position"
       }
     }))
+  }, false)
+  
+  // Actor evaluation button handlers
+  buttonEvaluate.addEventListener("click", event => {
+    showActorEvaluationUI()
+  }, false)
+  
+  buttonEvalRestart.addEventListener("click", event => {
+    const selectedActor = actorSelect.value
+    if (!selectedActor) {
+      alert("Please select an actor first")
+      return
+    }
+    
+    isEvaluating = true
+    const evalInfo = document.getElementById("evaluateInfoContainer")
+    evalInfo.innerHTML = `<p style="font-family: Arial, sans-serif;">Starting evaluation with actor: ${selectedActor}</p>`
+    
+    // Remove existing drones
+    Object.keys(window.drones).forEach(id => {
+      window.removeDrone(id)
+    })
+    
+    ws.send(JSON.stringify({
+      "channel": "evaluateActor",
+      "data": {
+        "actorPath": selectedActor,
+        "action": "restart"
+      }
+    }))
+  }, false)
+  
+  buttonEvalStop.addEventListener("click", event => {
+    if (isEvaluating) {
+      ws.send(JSON.stringify({
+        "channel": "evaluateActor",
+        "data": {
+          "action": "stop"
+        }
+      }))
+      
+      // Remove existing drones
+      Object.keys(window.drones).forEach(id => {
+        window.removeDrone(id)
+      })
+      
+      const evalInfo = document.getElementById("evaluateInfoContainer")
+      evalInfo.innerHTML = ""
+      isEvaluating = false
+    }
+  }, false)
+  
+  buttonEvalExit.addEventListener("click", event => {
+    if (isEvaluating) {
+      ws.send(JSON.stringify({
+        "channel": "evaluateActor",
+        "data": {
+          "action": "stop"
+        }
+      }))
+      
+      // Remove existing drones
+      Object.keys(window.drones).forEach(id => {
+        window.removeDrone(id)
+      })
+    }
+    
+    hideActorEvaluationUI()
   }, false)
 }
