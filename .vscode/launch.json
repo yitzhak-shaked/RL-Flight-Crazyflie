@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         // =============================================================================
-        // TRAINING CONFIGURATIONS
+        // TRAINING CONFIGURATIONS (DEBUG MODE)
         // =============================================================================
         {
-            "name": "🚀 Train RL Policy (Headless)",
+            "name": "🚀 Train RL Policy (Headless - Debug)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/training_headless",
@@ -26,7 +26,7 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "🎯 Train RL Policy (Benchmark)",
+            "name": "🎯 Train RL Policy (Benchmark - Debug)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/training_benchmark",
@@ -46,8 +46,27 @@
             "preLaunchTask": "Build Training Benchmark",
             "miDebuggerPath": "/usr/bin/gdb"
         },
+        // =============================================================================
+        // TRAINING CONFIGURATIONS (OPTIMIZED - NO DEBUG)
+        // =============================================================================
         {
-            "name": "🚀🔥 Simple CUDA Training",
+            "name": "🚀 Train RL Policy (Headless - Optimized) No Debug 🚫🪲",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "OPENBLAS_NUM_THREADS=1 ./build/src/training_headless",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build Training Headless"
+        },
+        {
+            "name": "🎯� Train RL Policy (Benchmark - Optimized) No Debug 🚫🪲",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "OPENBLAS_NUM_THREADS=1 ./build/src/training_benchmark",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build Training Benchmark"
+        },
+        {
+            "name": "��🔥 Simple CUDA Training (Debug)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/training_simple_cuda",
@@ -68,7 +87,15 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "🌐 Train with Web UI (Hover & Position-to-Position)",
+            "name": "🚀🔥 Simple CUDA Training (Optimized) No Debug 🚫🪲",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "OPENBLAS_NUM_THREADS=1 ./build/src/training_simple_cuda",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build Simple CUDA Training"
+        },
+        {
+            "name": "🌐 Train with Web UI (Debug)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/ui",
@@ -89,7 +116,15 @@
             "miDebuggerPath": "/usr/bin/gdb"
         },
         {
-            "name": "🔬 Ablation Study",
+            "name": "🌐 Train with Web UI (Optimized) No Debug 🚫🪲",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "OPENBLAS_NUM_THREADS=1 ./build/src/ui 0.0.0.0 8080],",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build UI"
+        },
+        {
+            "name": "🔬 Ablation Study (Debug)",
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/build/src/ablation_study",
@@ -108,6 +143,14 @@
             ],
             "preLaunchTask": "Build Ablation Study",
             "miDebuggerPath": "/usr/bin/gdb"
+        },
+        {
+            "name": "🔬 Ablation Study (Optimized) No Debug 🚫🪲",
+            "type": "node-terminal",
+            "request": "launch",
+            "command": "OPENBLAS_NUM_THREADS=1 ./build/src/ablation_study",
+            "cwd": "${workspaceFolder}",
+            "preLaunchTask": "Build Ablation Study"
         },
         {
             "name": "📊 Evaluate Actor",
