@@ -1,0 +1,19 @@
+=== ACTOR CHECKPOINT REFERENCE ===
+Generated on: 2025-08-18 00:12:45
+Training Run: 2025_08_18_00_06_27_d+o+a+r+h+c+f+w+e+_000
+
+=== STARTING POINT ===
+Initial Actor: hoverActor_000000000300000.h (Step 300,000 checkpoint)
+Starting Point: Pre-trained hover controller
+
+=== RELATED FILES ===
+Training Summary: ../logs/2025_08_18_00_06_27_d+o+a+r+h+c+f+w+e+_000/training_parameters_summary.txt
+TensorBoard Logs: ../logs/2025_08_18_00_06_27_d+o+a+r+h+c+f+w+e+_000/data.tfevents
+Actor Checkpoints (this folder):
+  - actor_000000000000000.h5 / .h (Step 0)
+  - actor_000000000100000.h5 / .h (Step 100,000)
+  - actor_000000000200000.h5 / .h (Step 200,000)
+  - actor_000000000300000.h5 / .h (Step 300,000)
+
+NOTE: For complete training parameters and configuration details,
+refer to the training summary file in the logs folder.

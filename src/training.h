@@ -20,6 +20,7 @@ namespace rlt = RL_TOOLS_NAMESPACE_WRAPPER ::rl_tools;
 #include "steps/logger.h"
 #include "steps/trajectory_collection.h"
 #include "steps/validation.h"
+#include "steps/training_summary.h"
 
 #include "helpers.h"
 
@@ -44,6 +45,10 @@ namespace learning_to_fly{
         TI effective_seed = CONFIG::BASE_SEED + seed;
         ts.run_name = helpers::run_name<ABLATION_SPEC, CONFIG>(effective_seed);
         rlt::construct(ts.device, ts.device.logger, std::string("logs"), ts.run_name);
+
+        // Generate training parameters summary file
+        std::string log_path = std::string("logs/") + ts.run_name;
+        learning_to_fly::steps::TrainingSummaryGenerator::generate_summary_file(log_path, ts.run_name);
 
         rlt::set_step(ts.device, ts.device.logger, 0);
         rlt::add_scalar(ts.device, ts.device.logger, "loop/seed", effective_seed);
