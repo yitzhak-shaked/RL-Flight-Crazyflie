@@ -16,7 +16,9 @@ void train(typename learning_to_fly::config::Config<T_ABLATION_SPEC>::TI seed = 
         learning_to_fly::step(ts);
     }
     {
-        std::string DATA_FILE_PATH = std::string("learning_curves_") + ts.run_name + ".h5";
+        // Save learning curves in the checkpoint directory instead of root
+        std::string checkpoint_dir = "checkpoints/multirotor_td3/" + ts.run_name;
+        std::string DATA_FILE_PATH = checkpoint_dir + "/learning_curves_" + ts.run_name + ".h5";
         auto data_file = HighFive::File(DATA_FILE_PATH, HighFive::File::Overwrite);
         std::vector<TI> step;
         std::vector<T> returns_mean, returns_std, episode_length_mean, episode_length_std;

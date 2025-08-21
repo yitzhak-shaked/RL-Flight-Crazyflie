@@ -7,6 +7,7 @@
 #include <iomanip>
 #include <chrono>
 #include <ctime>
+#include <filesystem>
 
 namespace learning_to_fly {
 namespace steps {
@@ -128,7 +129,22 @@ public:
         std::cout << "Training summary generated: " << filename << std::endl;
     }
     
+    static std::string determine_training_type_from_run_name(const std::string& run_name) {
+        if (run_name.find("BENCHMARK") != std::string::npos) {
+            return "Performance Benchmark";
+        } else if (run_name.find("ABLATION") != std::string::npos) {
+            return "Ablation Study";
+        } else if (run_name.find("d+o+a+r+h+c+f+w+e+") != std::string::npos) {
+            return "Full Multi-Component Training";
+        } else {
+            return "Standard Training";
+        }
+    }
+    
     static void create_actors_reference(const std::string& run_name) {
+        // Ensure actors directory exists
+        std::filesystem::create_directories("actors");
+        
         std::string actors_ref_file = "actors/TRAINING_INFO_" + run_name + ".txt";
         std::ofstream ref_file(actors_ref_file);
         
@@ -136,27 +152,42 @@ public:
             auto now = std::chrono::system_clock::now();
             auto time_t = std::chrono::system_clock::to_time_t(now);
             
+            // Determine training type
+            std::string training_type = determine_training_type_from_run_name(run_name);
+            
             ref_file << "=== ACTOR CHECKPOINT REFERENCE ===" << std::endl;
             ref_file << "Generated on: " << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S") << std::endl;
             ref_file << "Training Run: " << run_name << std::endl;
+            ref_file << std::endl;
+            ref_file << "=== TRAINING TYPE ===" << std::endl;
+            ref_file << "Type: " << training_type << std::endl;
+            ref_file << "Run Date: " << run_name.substr(0, 19) << std::endl;
             ref_file << std::endl;
             ref_file << "=== STARTING POINT ===" << std::endl;
             ref_file << "Initial Actor: hoverActor_000000000300000.h (Step 300,000 checkpoint)" << std::endl;
             ref_file << "Starting Point: Pre-trained hover controller" << std::endl;
             ref_file << std::endl;
             ref_file << "=== RELATED FILES ===" << std::endl;
-            ref_file << "Training Summary: ../logs/" << run_name << "/training_parameters_summary.txt" << std::endl;
-            ref_file << "TensorBoard Logs: ../logs/" << run_name << "/data.tfevents" << std::endl;
-            ref_file << "Actor Checkpoints (this folder):" << std::endl;
+            ref_file << "Training Summary: ../checkpoints/multirotor_td3/" << run_name << "/training_parameters_summary.txt" << std::endl;
+            ref_file << "TensorBoard Logs: ../checkpoints/multirotor_td3/" << run_name << "/data.tfevents" << std::endl;
+            ref_file << "Learning Curves: ../checkpoints/multirotor_td3/" << run_name << "/learning_curves_" << run_name << ".h5" << std::endl;
+            ref_file << "Actor Checkpoints (same folder):" << std::endl;
             ref_file << "  - actor_000000000000000.h5 / .h (Step 0)" << std::endl;
             ref_file << "  - actor_000000000100000.h5 / .h (Step 100,000)" << std::endl;
             ref_file << "  - actor_000000000200000.h5 / .h (Step 200,000)" << std::endl;
             ref_file << "  - actor_000000000300000.h5 / .h (Step 300,000)" << std::endl;
             ref_file << std::endl;
-            ref_file << "NOTE: For complete training parameters and configuration details," << std::endl;
-            ref_file << "refer to the training summary file in the logs folder." << std::endl;
+            ref_file << "=== AVAILABILITY ===" << std::endl;
+            ref_file << "Training Summary: ✓ Generated during training" << std::endl;
+            ref_file << "TensorBoard Events: ✓ Generated during training" << std::endl;
+            ref_file << std::endl;
+            ref_file << "NOTE: All training outputs are now consolidated in the checkpoint folder." << std::endl;
+            ref_file << "No separate logs directory is needed." << std::endl;
             
             ref_file.close();
+            std::cout << "Actor reference file generated: " << actors_ref_file << std::endl;
+        } else {
+            std::cerr << "Warning: Could not create actor reference file: " << actors_ref_file << std::endl;
         }
     }
     
