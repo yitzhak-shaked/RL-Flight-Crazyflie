@@ -52,7 +52,8 @@ namespace learning_to_fly{
             // Path to actor checkpoint file for weight initialization
             // When empty (""), uses random weight initialization
             // When set to a valid .h file path, loads weights from that checkpoint
-            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hoverActor_000000000300000.h";
+            // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hoverActor_000000000300000.h";
+            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "";
 
 
             using ACTOR_CRITIC_CONFIG = ActorAndCritic<T, TI, ENVIRONMENT, TD3_PARAMETERS>;

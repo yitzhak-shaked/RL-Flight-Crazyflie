@@ -11,6 +11,8 @@
 #include <thread>
 #include <mutex>
 #include <atomic>
+#include <vector>
+#include <algorithm>
 #include <boost/beast/websocket.hpp>
 #include <filesystem>
 #include <fstream>
@@ -640,7 +642,7 @@ private:
             
             nlohmann::json actors_array = nlohmann::json::array();
             
-            // Scan ./actors directory
+            // Scan ./actors directory (keep these on top)
             std::filesystem::path actors_dir = "./actors";
             if(std::filesystem::exists(actors_dir) && std::filesystem::is_directory(actors_dir)){
                 for(const auto& entry : std::filesystem::directory_iterator(actors_dir)){
@@ -656,8 +658,10 @@ private:
                 }
             }
             
-            // Scan ./checkpoints/multirotor_td3 directory
+            // Scan ./checkpoints/multirotor_td3 directory and sort by creation time
             std::filesystem::path checkpoints_dir = "./checkpoints/multirotor_td3";
+            std::vector<std::pair<std::filesystem::file_time_type, nlohmann::json>> checkpoint_actors;
+            
             if(std::filesystem::exists(checkpoints_dir) && std::filesystem::is_directory(checkpoints_dir)){
                 for(const auto& exp_entry : std::filesystem::directory_iterator(checkpoints_dir)){
                     if(exp_entry.is_directory()){
@@ -669,11 +673,25 @@ private:
                                     nlohmann::json actor_obj;
                                     actor_obj["name"] = "checkpoints/" + exp_name + "/" + filename;
                                     actor_obj["path"] = file_entry.path().string();
-                                    actors_array.push_back(actor_obj);
+                                    
+                                    // Get file creation time
+                                    auto file_time = std::filesystem::last_write_time(file_entry);
+                                    checkpoint_actors.push_back({file_time, actor_obj});
                                 }
                             }
                         }
                     }
+                }
+                
+                // Sort checkpoint actors by creation time (newest first)
+                std::sort(checkpoint_actors.begin(), checkpoint_actors.end(),
+                    [](const auto& a, const auto& b) {
+                        return a.first > b.first; // newer files first
+                    });
+                
+                // Add sorted checkpoint actors to the array
+                for(const auto& actor_pair : checkpoint_actors){
+                    actors_array.push_back(actor_pair.second);
                 }
             }
             
