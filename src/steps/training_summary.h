@@ -8,14 +8,20 @@
 #include <chrono>
 #include <ctime>
 #include <filesystem>
+#include "../constants.h"
 
 namespace learning_to_fly {
 namespace steps {
 
-// Simple runtime-based training summary generator that doesn't rely on complex template types
+// Template-based training summary generator that accesses actual configuration values
 class TrainingSummaryGenerator {
 public:
+    template<typename T_CONFIG>
     static void generate_summary_file(const std::string& log_dir, const std::string& run_name) {
+        using CONFIG = T_CONFIG;
+        using T = typename CONFIG::T;
+        using TI = typename CONFIG::TI;
+        using ABLATION_SPEC = typename CONFIG::ABLATION_SPEC;
         auto now = std::chrono::system_clock::now();
         auto time_t = std::chrono::system_clock::to_time_t(now);
         
@@ -33,45 +39,59 @@ public:
         file << std::endl;
         
         // Extract date and determine training type
-        std::string training_type = determine_training_type_from_run_name(run_name);
+        std::string training_type = determine_training_type_from_run_name<CONFIG>(run_name);
         
         file << "=== TRAINING TYPE AND LOCATIONS ===" << std::endl;
         file << "Training Date: " << run_name.substr(0, 19) << std::endl;
         file << "Training Type: " << training_type << std::endl;
         file << "Starting Location: (0.0, 0.0, 0.0)" << std::endl;
-        if (training_type.find("Hover") != std::string::npos) {
-            file << "Target Location: (0.0, 0.0, 0.0) [Hover at origin]" << std::endl;
+        
+        // Use actual target position from constants.h
+        file << "Target Location: (" 
+             << learning_to_fly::constants::TARGET_POSITION_X<T> << ", "
+             << learning_to_fly::constants::TARGET_POSITION_Y<T> << ", "
+             << learning_to_fly::constants::TARGET_POSITION_Z<T> << ")";
+             
+        if constexpr (std::is_same_v<ABLATION_SPEC, learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC>) {
+            file << " [Position-to-Position training]" << std::endl;
         } else {
-            file << "Target Location: Variable (Position-to-Position learning)" << std::endl;
+            file << " [Hover training - target equals start]" << std::endl;
         }
         file << std::endl;
         
-        write_ablation_features_from_run_name(file, run_name);
+        write_ablation_features_from_config<CONFIG>(file, run_name);
         
         file << std::endl;
         file << "=== ACTOR INITIALIZATION ===" << std::endl;
-        file << "Starting Actor: Initialized from checkpoint" << std::endl;
-        file << "Initialization Type: Pre-trained weights loaded" << std::endl;
-        file << "Starting Actor File: hoverActor_000000000300000.h (Step 300,000 checkpoint)" << std::endl;
-        file << "Checkpoint Path: ../actors/hoverActor_000000000300000.h" << std::endl;
-        file << "Base Seed: 0 (CONFIG::BASE_SEED)" << std::endl;
-        file << "Warmup Steps (Critic): 15000 steps" << std::endl;
-        file << "Warmup Steps (Actor): 30000 steps" << std::endl;
+        
+        // Check actual ACTOR_CHECKPOINT_INIT_PATH
+        std::string init_path(CONFIG::ACTOR_CHECKPOINT_INIT_PATH);
+        if (init_path.empty()) {
+            file << "Starting Actor: Random weight initialization" << std::endl;
+            file << "Initialization Type: Fresh training from scratch" << std::endl;
+            file << "Starting Actor File: None (random weights)" << std::endl;
+            file << "Checkpoint Path: Not applicable" << std::endl;
+        } else {
+            file << "Starting Actor: Initialized from checkpoint" << std::endl;
+            file << "Initialization Type: Pre-trained weights loaded" << std::endl;
+            file << "Starting Actor File: " << init_path << std::endl;
+            file << "Checkpoint Path: " << init_path << std::endl;
+        }
+        
+        file << "Base Seed: " << CONFIG::BASE_SEED << " (CONFIG::BASE_SEED)" << std::endl;
+        file << "Warmup Steps (Critic): " << CONFIG::N_WARMUP_STEPS_CRITIC << " steps" << std::endl;
+        file << "Warmup Steps (Actor): " << CONFIG::N_WARMUP_STEPS_ACTOR << " steps" << std::endl;
         file << std::endl;
         
         file << "=== TRAINING STEPS ===" << std::endl;
-        file << "Maximum Training Steps: 300001" << std::endl;
-        file << "Actor Checkpoint Interval: 100000 steps" << std::endl;
-        file << "Total Expected Checkpoints: 3" << std::endl;
+        file << "Maximum Training Steps: " << CONFIG::STEP_LIMIT << std::endl;
+        file << "Actor Checkpoint Interval: " << CONFIG::ACTOR_CHECKPOINT_INTERVAL << " steps" << std::endl;
+        file << "Actor Checkpoints Enabled: " << (CONFIG::ACTOR_ENABLE_CHECKPOINTS ? "Yes" : "No") << std::endl;
+        file << "Total Expected Checkpoints: " << (CONFIG::STEP_LIMIT / CONFIG::ACTOR_CHECKPOINT_INTERVAL) << std::endl;
         file << std::endl;
         
-        file << "=== COST FUNCTION PARAMETERS ===" << std::endl;
-        file << "Reward Function Type: Squared (position only with torque penalty)" << std::endl;
-        file << "Position Weight: High" << std::endl;
-        file << "Orientation Weight: Medium" << std::endl;
-        file << "Velocity Weight: Low-Medium" << std::endl;
-        file << "Action Penalty: Low" << std::endl;
-        file << "Scale Factor: Variable based on specific reward function" << std::endl;
+        file << "=== REWARD FUNCTION PARAMETERS ===" << std::endl;
+        write_reward_function_details<CONFIG>(file);
         file << std::endl;
         
         file << "=== ENVIRONMENT CONFIGURATION ===" << std::endl;
@@ -79,36 +99,43 @@ public:
         file << "Physics Engine: Custom RL-Tools Multirotor Simulator" << std::endl;
         file << "Integration Method: RK4 (Runge-Kutta 4th order)" << std::endl;
         file << "Simulation Step Size (dt): 0.01 seconds" << std::endl;
-        file << "Episode Length: 500 steps (5.0 seconds)" << std::endl;
-        file << "Evaluation Episode Length: 500 steps (5.0 seconds)" << std::endl;
-        file << "Number of Parallel Environments: 1" << std::endl;
-        file << "Action Dimension: 4 (motor commands)" << std::endl;
+        file << "Episode Length: " << CONFIG::ENVIRONMENT_STEP_LIMIT << " steps (" << (CONFIG::ENVIRONMENT_STEP_LIMIT * 0.01) << " seconds)" << std::endl;
+        file << "Evaluation Episode Length: " << CONFIG::ENVIRONMENT_STEP_LIMIT_EVALUATION << " steps (" << (CONFIG::ENVIRONMENT_STEP_LIMIT_EVALUATION * 0.01) << " seconds)" << std::endl;
+        file << "Number of Parallel Environments: " << CONFIG::N_ENVIRONMENTS << std::endl;
+        file << "Action Dimension: " << CONFIG::ENVIRONMENT::ACTION_DIM << " (motor commands)" << std::endl;
+        file << "Observation Dimension: " << CONFIG::ENVIRONMENT::OBSERVATION_DIM << std::endl;
+        file << "Observation Dimension Privileged: " << CONFIG::ENVIRONMENT::OBSERVATION_DIM_PRIVILEGED << std::endl;
         file << std::endl;
         
         file << "=== ALGORITHM PARAMETERS ===" << std::endl;
         file << "Algorithm: TD3 (Twin Delayed Deep Deterministic Policy Gradient)" << std::endl;
-        file << "Actor Batch Size: 256" << std::endl;
-        file << "Critic Batch Size: 256" << std::endl;
-        file << "Training Interval: 10 steps" << std::endl;
-        file << "Actor Training Interval: 20 steps" << std::endl;
-        file << "Critic Training Interval: 10 steps" << std::endl;
-        file << "Target Network Update Interval (Actor): 20 steps" << std::endl;
-        file << "Target Network Update Interval (Critic): 10 steps" << std::endl;
-        file << "Discount Factor (Gamma): 0.99" << std::endl;
-        file << "Target Action Noise STD: 0.2" << std::endl;
-        file << "Target Action Noise Clip: 0.5" << std::endl;
-        file << "Ignore Termination: No" << std::endl;
-        file << "Replay Buffer Capacity: 300001" << std::endl;
-        file << "Off-Policy Runner Exploration Noise: 0.1" << std::endl;
+        file << "Actor Batch Size: " << CONFIG::TD3_PARAMETERS::ACTOR_BATCH_SIZE << std::endl;
+        file << "Critic Batch Size: " << CONFIG::TD3_PARAMETERS::CRITIC_BATCH_SIZE << std::endl;
+        file << "Training Interval: " << CONFIG::TD3_PARAMETERS::TRAINING_INTERVAL << " steps" << std::endl;
+        file << "Actor Training Interval: " << CONFIG::TD3_PARAMETERS::ACTOR_TRAINING_INTERVAL << " steps" << std::endl;
+        file << "Critic Training Interval: " << CONFIG::TD3_PARAMETERS::CRITIC_TRAINING_INTERVAL << " steps" << std::endl;
+        file << "Target Network Update Interval (Actor): " << CONFIG::TD3_PARAMETERS::ACTOR_TARGET_UPDATE_INTERVAL << " steps" << std::endl;
+        file << "Target Network Update Interval (Critic): " << CONFIG::TD3_PARAMETERS::CRITIC_TARGET_UPDATE_INTERVAL << " steps" << std::endl;
+        file << "Discount Factor (Gamma): " << CONFIG::TD3_PARAMETERS::GAMMA << std::endl;
+        file << "Target Action Noise STD: " << CONFIG::TD3_PARAMETERS::TARGET_NEXT_ACTION_NOISE_STD << std::endl;
+        file << "Target Action Noise Clip: " << CONFIG::TD3_PARAMETERS::TARGET_NEXT_ACTION_NOISE_CLIP << std::endl;
+        file << "Ignore Termination: " << (CONFIG::TD3_PARAMETERS::IGNORE_TERMINATION ? "Yes" : "No") << std::endl;
+        file << "Replay Buffer Capacity: " << CONFIG::REPLAY_BUFFER_CAP << std::endl;
+        file << "Off-Policy Runner Exploration Noise: " << CONFIG::off_policy_runner_parameters.exploration_noise << std::endl;
+        file << "Evaluation Interval: " << CONFIG::EVALUATION_INTERVAL << " steps" << std::endl;
+        file << "Number of Evaluation Episodes: " << CONFIG::NUM_EVALUATION_EPISODES << std::endl;
         file << std::endl;
         
         file << "=== CHECKPOINTING CONFIGURATION ===" << std::endl;
-        file << "Checkpoint Interval: Every 100000 steps" << std::endl;
+        file << "Checkpoint Interval: Every " << CONFIG::ACTOR_CHECKPOINT_INTERVAL << " steps" << std::endl;
+        file << "Checkpoints Enabled: " << (CONFIG::ACTOR_ENABLE_CHECKPOINTS ? "Yes" : "No") << std::endl;
         file << "File Formats Saved:" << std::endl;
         file << "  - HDF5 (.h5): For analysis and evaluation" << std::endl;
         file << "  - C++ Header (.h): For embedded deployment" << std::endl;
         file << "TensorBoard Logging: Enabled" << std::endl;
         file << "Learning Curve Data: Saved to HDF5 format" << std::endl;
+        file << "Deterministic Evaluation: " << (CONFIG::DETERMINISTIC_EVALUATION ? "Yes" : "No") << std::endl;
+        file << "Collect Episode Stats: " << (CONFIG::COLLECT_EPISODE_STATS ? "Yes" : "No") << std::endl;
         file << std::endl;
         
         file << "=== ADDITIONAL NOTES ===" << std::endl;
@@ -124,23 +151,30 @@ public:
         file.close();
         
         // Create reference file in actors folder
-        create_actors_reference(run_name);
+        create_actors_reference<CONFIG>(run_name);
         
         std::cout << "Training summary generated: " << filename << std::endl;
     }
     
+    template<typename T_CONFIG>
     static std::string determine_training_type_from_run_name(const std::string& run_name) {
+        using CONFIG = T_CONFIG;
+        using ABLATION_SPEC = typename CONFIG::ABLATION_SPEC;
+        
         if (run_name.find("BENCHMARK") != std::string::npos) {
             return "Performance Benchmark";
         } else if (run_name.find("ABLATION") != std::string::npos) {
             return "Ablation Study";
         } else if (run_name.find("d+o+a+r+h+c+f+w+e+") != std::string::npos) {
             return "Full Multi-Component Training";
+        } else if constexpr (std::is_same_v<ABLATION_SPEC, learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC>) {
+            return "Position-to-Position Learning";
         } else {
-            return "Standard Training";
+            return "Hover Learning";
         }
     }
     
+    template<typename T_CONFIG>
     static void create_actors_reference(const std::string& run_name) {
         // Ensure actors directory exists
         std::filesystem::create_directories("actors");
@@ -153,7 +187,7 @@ public:
             auto time_t = std::chrono::system_clock::to_time_t(now);
             
             // Determine training type
-            std::string training_type = determine_training_type_from_run_name(run_name);
+            std::string training_type = determine_training_type_from_run_name<T_CONFIG>(run_name);
             
             ref_file << "=== ACTOR CHECKPOINT REFERENCE ===" << std::endl;
             ref_file << "Generated on: " << std::put_time(std::localtime(&time_t), "%Y-%m-%d %H:%M:%S") << std::endl;
@@ -192,23 +226,18 @@ public:
     }
     
 private:
-    static std::string determine_training_type_from_run_name(const std::string& run_name) {
-        if (run_name.find("BENCHMARK") != std::string::npos) {
-            return "Benchmark Training";
-        } else {
-            return "Hover Learning";
-        }
-    }
-    
-    static void write_ablation_features_from_run_name(std::ofstream& file, const std::string& run_name) {
+    template<typename T_CONFIG>
+    static void write_ablation_features_from_config(std::ofstream& file, const std::string& run_name) {
+        using CONFIG = T_CONFIG;
+        using ABLATION_SPEC = typename CONFIG::ABLATION_SPEC;
+        
         file << "=== ABLATION STUDY FEATURES ===" << std::endl;
         
-        // Extract feature string (e.g., "d+o+a+r+h+c+f+w+e+")
+        // Extract feature string from run name for reference
         std::string features = "d+o+a+r+h+c+f+w+e+"; // default
         size_t underscore_count = 0;
         size_t start_pos = 0;
         
-        // Find the feature string (after 6 underscores for date/time)
         for (size_t i = 0; i < run_name.length(); ++i) {
             if (run_name[i] == '_') {
                 underscore_count++;
@@ -228,16 +257,83 @@ private:
             }
         }
         
-        file << "Feature String: " << features << std::endl;
-        file << "Disturbance (d): " << (features.find('d') != std::string::npos ? "Enabled" : "Disabled") << std::endl;
-        file << "Observation Noise (o): " << (features.find('o') != std::string::npos ? "Enabled" : "Disabled") << std::endl;
-        file << "Asymmetric Actor-Critic (a): " << (features.find('a') != std::string::npos ? "Enabled" : "Disabled") << std::endl;
-        file << "Rotor Delay (r): " << (features.find('r') != std::string::npos ? "Enabled" : "Disabled") << std::endl;
-        file << "Action History (h): " << (features.find('h') != std::string::npos ? "Enabled" : "Disabled") << std::endl;
-        file << "Curriculum Learning (c): " << (features.find('c') != std::string::npos ? "Enabled" : "Disabled") << std::endl;
-        file << "Recalculate Rewards (f): " << (features.find('f') != std::string::npos ? "Enabled" : "Disabled") << std::endl;
-        file << "Initial Reward Function (w): " << (features.find('w') != std::string::npos ? "Enabled" : "Disabled") << std::endl;
-        file << "Exploration Noise Decay (e): " << (features.find('e') != std::string::npos ? "Enabled" : "Disabled") << std::endl;
+        file << "Feature String from Run Name: " << features << std::endl;
+        file << "=== ACTUAL CONFIG VALUES ===" << std::endl;
+        file << "Disturbance (d): " << (ABLATION_SPEC::DISTURBANCE ? "Enabled" : "Disabled") << std::endl;
+        file << "Observation Noise (o): " << (ABLATION_SPEC::OBSERVATION_NOISE ? "Enabled" : "Disabled") << std::endl;
+        file << "Asymmetric Actor-Critic (a): " << (ABLATION_SPEC::ASYMMETRIC_ACTOR_CRITIC ? "Enabled" : "Disabled") << std::endl;
+        file << "Rotor Delay (r): " << (ABLATION_SPEC::ROTOR_DELAY ? "Enabled" : "Disabled") << std::endl;
+        file << "Action History (h): " << (ABLATION_SPEC::ACTION_HISTORY ? "Enabled" : "Disabled") << std::endl;
+        file << "Curriculum Learning (c): " << (ABLATION_SPEC::ENABLE_CURRICULUM ? "Enabled" : "Disabled") << std::endl;
+        file << "Recalculate Rewards (f): " << (ABLATION_SPEC::RECALCULATE_REWARDS ? "Enabled" : "Disabled") << std::endl;
+        file << "Initial Reward Function (w): " << (ABLATION_SPEC::USE_INITIAL_REWARD_FUNCTION ? "Enabled" : "Disabled") << std::endl;
+        file << "Exploration Noise Decay (e): " << (ABLATION_SPEC::EXPLORATION_NOISE_DECAY ? "Enabled" : "Disabled") << std::endl;
+        file << "Init Normal (init): " << (ABLATION_SPEC::INIT_NORMAL ? "Enabled" : "Disabled") << std::endl;
+        
+        if constexpr (std::is_same_v<ABLATION_SPEC, learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC>) {
+            file << "Position-to-Position Reward: Enabled" << std::endl;
+        }
+    }
+    
+    template<typename T_CONFIG>
+    static void write_reward_function_details(std::ofstream& file) {
+        using CONFIG = T_CONFIG;
+        using T = typename CONFIG::T;
+        using ABLATION_SPEC = typename CONFIG::ABLATION_SPEC;
+        
+        if constexpr (std::is_same_v<ABLATION_SPEC, learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC>) {
+            file << "Reward Function Type: Position-to-Position (Hover-like parameters)" << std::endl;
+            file << "Selected Function: reward_position_to_position_hover_like" << std::endl;
+        } else {
+            if (ABLATION_SPEC::USE_INITIAL_REWARD_FUNCTION) {
+                file << "Reward Function Type: Initial Training Function (Squared)" << std::endl;
+                file << "Selected Function: reward_squared_position_only_torque" << std::endl;
+            } else {
+                file << "Reward Function Type: Target Curriculum Function (Squared)" << std::endl;
+                file << "Selected Function: reward_squared_position_only_torque_curriculum_target" << std::endl;
+            }
+        }
+        
+        file << "=== REWARD FUNCTION NUMERICAL VALUES ===" << std::endl;
+        
+        // Get the actual reward function values from the parameters
+        auto env_parameters = parameters::environment<T, typename CONFIG::TI, ABLATION_SPEC>::parameters;
+        auto reward_function = env_parameters.mdp.reward;
+        
+        // Extract all the numerical values from the reward function
+        file << "Non-negative: " << (reward_function.non_negative ? "true" : "false") << std::endl;
+        file << "Scale: " << reward_function.scale << std::endl;
+        file << "Constant: " << reward_function.constant << std::endl;
+        file << "Termination Penalty: " << reward_function.termination_penalty << std::endl;
+        file << "Position Weight: " << reward_function.position << std::endl;
+        file << "Orientation Weight: " << reward_function.orientation << std::endl;
+        file << "Linear Velocity Weight: " << reward_function.linear_velocity << std::endl;
+        file << "Angular Velocity Weight: " << reward_function.angular_velocity << std::endl;
+        file << "Linear Acceleration Weight: " << reward_function.linear_acceleration << std::endl;
+        file << "Angular Acceleration Weight: " << reward_function.angular_acceleration << std::endl;
+        file << "Action Baseline: " << reward_function.action_baseline << std::endl;
+        file << "Action Penalty: " << reward_function.action << std::endl;
+        
+        // For Position-to-Position reward functions, add extra fields if they exist
+        if constexpr (std::is_same_v<ABLATION_SPEC, learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC>) {
+            // Try to access position-to-position specific fields
+            file << "=== POSITION-TO-POSITION SPECIFIC PARAMETERS ===" << std::endl;
+            file << "Target Position: (" 
+                 << learning_to_fly::constants::TARGET_POSITION_X<T> << ", "
+                 << learning_to_fly::constants::TARGET_POSITION_Y<T> << ", "
+                 << learning_to_fly::constants::TARGET_POSITION_Z<T> << ")" << std::endl;
+            
+            // Hardcoded values from reward_position_to_position_hover_like definition
+            file << "Target Radius: 0.1 (from reward_position_to_position_hover_like definition)" << std::endl;
+            file << "Velocity Reward Scale: 0.5 (from reward_position_to_position_hover_like definition)" << std::endl;
+            file << "Use Target Progress: false (from reward_position_to_position_hover_like definition)" << std::endl;
+        }
+        
+        file << "=== REWARD FUNCTION EXPLANATION ===" << std::endl;
+        file << "Higher position/orientation weights = stronger penalty for deviation" << std::endl;
+        file << "Higher action penalty = smoother control but potentially slower convergence" << std::endl;
+        file << "Scale factor affects overall reward magnitude" << std::endl;
+        file << "Constant provides baseline reward level" << std::endl;
     }
 };
 
