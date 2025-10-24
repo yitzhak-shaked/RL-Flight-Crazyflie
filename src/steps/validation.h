@@ -4,6 +4,9 @@ namespace learning_to_fly {
     namespace steps {
         template <typename CONFIG>
         void validation(TrainingState<CONFIG>& ts){
+            // Validation disabled for performance - was running every 50000 steps
+            // Uncomment below to re-enable validation
+            /*
             if(ts.step % 50000 == 0){
                 rlt::reset(ts.device, ts.task, ts.rng_eval);
                 bool completed = false;
@@ -12,6 +15,7 @@ namespace learning_to_fly {
                 }
                 rlt::analyse_log(ts.device, ts.task, typename TrainingState<CONFIG>::SPEC::METRICS{});
             }
+            */
         }
     }
 }

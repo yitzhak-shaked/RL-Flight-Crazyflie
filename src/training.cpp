@@ -64,6 +64,6 @@ void run() {
 
 
 int main() {
-    run<learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC>();
+    run<learning_to_fly::config::DEFAULT_ABLATION_SPEC>();  // Changed from POSITION_TO_POSITION for faster training
     return 0;
 }

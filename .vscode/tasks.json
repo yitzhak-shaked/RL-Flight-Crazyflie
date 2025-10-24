@@ -5,15 +5,15 @@
         // BUILD TASKS
         // =============================================================================
         {
-            "label": "Configure CMake with CUDA",
+            "label": "Configure CMake",
             "type": "shell",
             "command": "cmake",
             "args": [
                 "-B", "build",
                 "-S", ".",
-                "-DCMAKE_BUILD_TYPE=RelWithDebInfo",
-                "-DLEARNING_TO_FLY_IN_SECONDS_ENABLE_TESTS=ON",
-                "-DRL_TOOLS_BACKEND_ENABLE_CUDA=ON"
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DRL_TOOLS_BACKEND_ENABLE_OPENBLAS=ON",
+                "-DRL_TOOLS_ENABLE_FAST_MATH=ON"
             ],
             "group": "build",
             "presentation": {
@@ -25,7 +25,31 @@
                 "clear": false
             },
             "problemMatcher": [],
-            "detail": "Configure CMake build system with CUDA support"
+            "detail": "Configure CMake with Release mode, OpenBLAS, and optimizations"
+        },
+        {
+            "label": "Configure CMake with CUDA",
+            "type": "shell",
+            "command": "cmake",
+            "args": [
+                "-B", "build",
+                "-S", ".",
+                "-DCMAKE_BUILD_TYPE=Release",
+                "-DLEARNING_TO_FLY_IN_SECONDS_ENABLE_TESTS=ON",
+                "-DRL_TOOLS_BACKEND_ENABLE_CUDA=ON",
+                "-DRL_TOOLS_ENABLE_FAST_MATH=ON"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": [],
+            "detail": "Configure CMake build system with CUDA support and optimizations"
         },
         {
             "label": "Build CUDA Training Headless",
