@@ -70,7 +70,7 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     struct CONFIG: learning_to_fly::config::Config<ABLATION_SPEC>{
         using DEV_SPEC = rlt::devices::cpu::Specification<rlt::devices::math::CPU, rlt::devices::random::CPU, rlt::devices::logging::CPU>;
         using DEVICE = rlt::DEVICE_FACTORY<DEV_SPEC>;
-        static constexpr TI STEP_LIMIT = 300001;
+        static constexpr TI STEP_LIMIT = 1000000;
         static constexpr bool DETERMINISTIC_EVALUATION = false;
         static constexpr TI BASE_SEED = 0;
     };
@@ -78,7 +78,7 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     struct POSITION_TO_POSITION_CONFIG: learning_to_fly::config::Config<POSITION_TO_POSITION_ABLATION_SPEC>{
         using DEV_SPEC = rlt::devices::cpu::Specification<rlt::devices::math::CPU, rlt::devices::random::CPU, rlt::devices::logging::CPU>;
         using DEVICE = rlt::DEVICE_FACTORY<DEV_SPEC>;
-        static constexpr TI STEP_LIMIT = 300001;
+        static constexpr TI STEP_LIMIT = 1000000;
         static constexpr bool DETERMINISTIC_EVALUATION = false;
         static constexpr TI BASE_SEED = 0;
     };

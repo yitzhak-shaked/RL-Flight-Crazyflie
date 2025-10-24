@@ -1,3 +1,6 @@
+#ifndef LEARNING_TO_FLY_IN_SECONDS_SIMULATOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_H
+#define LEARNING_TO_FLY_IN_SECONDS_SIMULATOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_H
+
 #include "../../multirotor.h"
 #include "abs_exp.h"
 #include "sq_exp.h"
@@ -595,4 +598,31 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions {
             1.0, // velocity_reward_scale
             true  // use_target_progress
     };
+
+    // New smooth flight reward function - prioritizes stable, smooth flight with crash penalties
+    // V10: Anti-shivering version - higher acceleration penalties for smoother flight
+    template<typename T>
+    constexpr PositionToPosition<T> reward_position_to_position_smooth = {
+            // Base Squared parameters
+            false, // non-negative
+            0.4, // scale
+            2.5, // constant - good survival reward
+            -100, // termination penalty - strong crash penalty
+            5, // position - balanced position cost
+            10, // orientation - high stability
+            0.3, // linear_velocity - REDUCED from 0.5 to allow more movement freedom
+            0.05, // angular_velocity - low to allow rotation freedom
+            0.5, // linear_acceleration - INCREASED from 0.05 to heavily penalize jerkiness!
+            0.5, // angular_acceleration - INCREASED from 0.05 to prevent shivering!
+            RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE,
+            0.03, // action
+            
+            // PositionToPosition-specific parameters
+            {learning_to_fly::constants::TARGET_POSITION_X<T>, learning_to_fly::constants::TARGET_POSITION_Y<T>, learning_to_fly::constants::TARGET_POSITION_Z<T>}, // target_pos
+            0.2, // target_radius (20cm tolerance)
+            1.0, // velocity_reward_scale
+            true  // use_target_progress
+    };
 }
+
+#endif

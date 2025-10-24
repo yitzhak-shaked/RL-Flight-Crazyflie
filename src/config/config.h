@@ -52,8 +52,7 @@ namespace learning_to_fly{
             // Path to actor checkpoint file for weight initialization
             // When empty (""), uses random weight initialization
             // When set to a valid .h file path, loads weights from that checkpoint
-            // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hoverActor_000000000300000.h";
-            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "";
+            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hoverActor_000000000300000.h";
 
 
             using ACTOR_CRITIC_CONFIG = ActorAndCritic<T, TI, ENVIRONMENT, TD3_PARAMETERS>;
@@ -78,11 +77,11 @@ namespace learning_to_fly{
             static constexpr bool COLLECT_EPISODE_STATS = false;
             static constexpr TI EPISODE_STATS_BUFFER_SIZE = 1000;
             static constexpr TI N_ENVIRONMENTS = 1;
-            static constexpr TI STEP_LIMIT = 300001;
+            static constexpr TI STEP_LIMIT = 1000000;
 //            static constexpr TI REPLAY_BUFFER_LIMIT = 3000000;
             static constexpr TI REPLAY_BUFFER_CAP = STEP_LIMIT;
-            static constexpr TI ENVIRONMENT_STEP_LIMIT = 500;
-            static constexpr TI ENVIRONMENT_STEP_LIMIT_EVALUATION = 500;
+            static constexpr TI ENVIRONMENT_STEP_LIMIT = 2000;  // Increased from 500 to 2000 - gives more time to reach 1m target smoothly
+            static constexpr TI ENVIRONMENT_STEP_LIMIT_EVALUATION = 2000;  // Same for evaluation
             static constexpr TI BASE_SEED = 0;
             static constexpr bool CONSTRUCT_LOGGER = false;
             using OFF_POLICY_RUNNER_SPEC = rlt::rl::components::off_policy_runner::Specification<T, TI, ENVIRONMENT, N_ENVIRONMENTS, ASYMMETRIC_OBSERVATIONS, REPLAY_BUFFER_CAP, ENVIRONMENT_STEP_LIMIT, rlt::rl::components::off_policy_runner::DefaultParameters<T>, false, true, 1000>;

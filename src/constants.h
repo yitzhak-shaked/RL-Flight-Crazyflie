@@ -10,7 +10,7 @@ namespace learning_to_fly {
         constexpr T TARGET_POSITION_X = T(0.0);
         
         template<typename T>
-        constexpr T TARGET_POSITION_Y = T(0.4);
+        constexpr T TARGET_POSITION_Y = T(1.0);
         
         template<typename T>
         constexpr T TARGET_POSITION_Z = T(0.0);

@@ -96,20 +96,59 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
         // Additional reward for progress towards target
         T progress_reward = 0;
         if(params.use_target_progress) {
-            // Reward for being close to target
+            // IMPROVED: Stronger exponential reward for being close to target center
+            // Higher falloff factor (5.0 instead of 3.0) creates steeper gradient toward center
+            T proximity_factor = math::exp(device.math, -target_distance * 5.0);
+            progress_reward = params.velocity_reward_scale * proximity_factor * 3.0; // 3x scaling for stronger pull
+            
+            // Graduated bonus rewards based on proximity to center
             if(target_distance < params.target_radius) {
-                progress_reward = params.velocity_reward_scale * (params.target_radius - target_distance);
+                progress_reward += params.velocity_reward_scale * 5.0; // Huge bonus for being inside ball
+                
+                // Extra bonus for being very close to center AND moving slowly (stable hovering)
+                if(target_distance < params.target_radius * 0.5) {
+                    progress_reward += params.velocity_reward_scale * 3.0; // Bonus for inner half
+                    // Bonus for being slow when close to center (encourages stable hovering)
+                    T speed_sq = linear_vel_cost;
+                    T speed = math::sqrt(device.math, speed_sq);
+                    if(speed < 0.5) { // Low speed bonus
+                        progress_reward += params.velocity_reward_scale * 2.0 * (0.5 - speed);
+                    }
+                }
+                if(target_distance < params.target_radius * 0.25) {
+                    progress_reward += params.velocity_reward_scale * 2.0; // Even more for inner quarter
+                    // Even bigger bonus for hovering near center
+                    T speed_sq = linear_vel_cost;
+                    T speed = math::sqrt(device.math, speed_sq);
+                    if(speed < 0.3) {
+                        progress_reward += params.velocity_reward_scale * 3.0 * (0.3 - speed);
+                    }
+                }
+                
+                // Penalize high speeds when inside the ball to encourage smooth approach
+                T speed_sq = linear_vel_cost;
+                T speed = math::sqrt(device.math, speed_sq);
+                if(speed > 1.0) {
+                    progress_reward -= params.velocity_reward_scale * (speed - 1.0) * 0.5;
+                }
             }
             
-            // Additional velocity reward when moving towards target
+            // Additional velocity reward when moving towards target (but smaller than proximity reward)
             T velocity_towards_target = 0;
             for(TI i = 0; i < 3; i++){
                 T direction_to_target = (params.target_pos[i] - next_state.position[i]) / (target_distance + 1e-6);
                 velocity_towards_target += next_state.linear_velocity[i] * direction_to_target;
             }
             
-            if(velocity_towards_target > 0 && target_distance > params.target_radius) {
-                progress_reward += params.velocity_reward_scale * velocity_towards_target * 0.1;
+            // Only reward moderate forward progress when far from target (don't encourage flying too fast)
+            if(target_distance > params.target_radius && velocity_towards_target > 0) {
+                T vel_reward = velocity_towards_target;
+                // Cap velocity reward to discourage excessive speed
+                if(vel_reward > 2.0) vel_reward = 2.0;
+                progress_reward += params.velocity_reward_scale * vel_reward * 0.05; // Reduced from 0.1
+            } else if(target_distance < params.target_radius && velocity_towards_target < 0) {
+                // Penalize moving away from center when already inside the ball
+                progress_reward += params.velocity_reward_scale * velocity_towards_target * 0.3; // Increased penalty
             }
         }
         

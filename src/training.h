@@ -72,13 +72,21 @@ namespace learning_to_fly{
         std::cout << "\t" << "Observation dim privileged: " << CONFIG::ENVIRONMENT::OBSERVATION_DIM_PRIVILEGED << std::endl;
         std::cout << "\t" << "Action dim: " << CONFIG::ENVIRONMENT::ACTION_DIM << std::endl;
         
-        // Show target position if using position-to-position training
+                // Show target position if using position-to-position training
         if constexpr (std::is_same_v<typename CONFIG::ABLATION_SPEC, learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC>) {
             std::cout << "\t" << "Target position: (" 
                       << learning_to_fly::constants::TARGET_POSITION_X<T> << ", "
                       << learning_to_fly::constants::TARGET_POSITION_Y<T> << ", "
                       << learning_to_fly::constants::TARGET_POSITION_Z<T> << ")" << std::endl;
-            std::cout << "\t" << "Using position-to-position reward (hover-like parameters)" << std::endl;
+            std::cout << "\t" << "Using position-to-position SMOOTH reward (V10 - ANTI-SHIVERING)" << std::endl;
+            std::cout << "\t" << "  - V1 smooth flight foundation" << std::endl;
+            std::cout << "\t" << "  - Exponential proximity reward (closer = more reward)" << std::endl;
+            std::cout << "\t" << "  - ANTI-SHIVERING CONFIGURATION:" << std::endl;
+            std::cout << "\t" << "    * Linear acceleration: 0.5 (was 0.05) - HEAVY penalty for jerky movements!" << std::endl;
+            std::cout << "\t" << "    * Angular acceleration: 0.5 (was 0.05) - HEAVY penalty for rotation jerkiness!" << std::endl;
+            std::cout << "\t" << "    * Linear velocity: 0.3 (reduced from 0.5) - more freedom to move smoothly" << std::endl;
+            std::cout << "\t" << "    * Angular velocity: 0.05 - freedom to rotate" << std::endl;
+            std::cout << "\t" << "  - Episode length: " << CONFIG::ENVIRONMENT_STEP_LIMIT << " steps (more time to reach target)" << std::endl;
         } else {
             std::cout << "\t" << "Using hover reward function" << std::endl;
         }
