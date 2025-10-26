@@ -1,6 +1,9 @@
 #include "../../multirotor.h"
 
-#define RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_INIT_POSITION (0.2)
+// CRITICAL FIX: Increased from 0.2 to 0.6 to cover full range to target at (0,1,0)
+// Agent needs to experience states across the full 1m journey, not just ±0.2m!
+// With 0.2m init, agent never saw positions beyond 0.4m during training -> extrapolation failure
+#define RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_INIT_POSITION (0.6)
 #define RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_INIT_LINEAR_VELOCITY (1)
 #define RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_INIT_ANGULAR_VELOCITY (1)
 

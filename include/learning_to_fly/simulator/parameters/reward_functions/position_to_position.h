@@ -96,59 +96,69 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
         // Additional reward for progress towards target
         T progress_reward = 0;
         if(params.use_target_progress) {
-            // IMPROVED: Stronger exponential reward for being close to target center
-            // Higher falloff factor (5.0 instead of 3.0) creates steeper gradient toward center
-            T proximity_factor = math::exp(device.math, -target_distance * 5.0);
-            progress_reward = params.velocity_reward_scale * proximity_factor * 3.0; // 3x scaling for stronger pull
+            // CRITICAL FIX: Gentler exponential for better gradient when far from target
+            // exp(-distance * 2.0) instead of exp(-distance * 5.0)
+            // At 1m: exp(-2) = 0.135 (good signal) vs exp(-5) = 0.0067 (too weak!)
+            T proximity_factor = math::exp(device.math, -target_distance * T(2.0));
+            progress_reward = params.velocity_reward_scale * proximity_factor * T(2.0);
             
             // Graduated bonus rewards based on proximity to center
             if(target_distance < params.target_radius) {
-                progress_reward += params.velocity_reward_scale * 5.0; // Huge bonus for being inside ball
+                progress_reward += params.velocity_reward_scale * T(5.0); // Huge bonus for being inside ball
                 
                 // Extra bonus for being very close to center AND moving slowly (stable hovering)
-                if(target_distance < params.target_radius * 0.5) {
-                    progress_reward += params.velocity_reward_scale * 3.0; // Bonus for inner half
+                if(target_distance < params.target_radius * T(0.5)) {
+                    progress_reward += params.velocity_reward_scale * T(3.0); // Bonus for inner half
                     // Bonus for being slow when close to center (encourages stable hovering)
                     T speed_sq = linear_vel_cost;
                     T speed = math::sqrt(device.math, speed_sq);
-                    if(speed < 0.5) { // Low speed bonus
-                        progress_reward += params.velocity_reward_scale * 2.0 * (0.5 - speed);
+                    if(speed < T(0.5)) { // Low speed bonus
+                        progress_reward += params.velocity_reward_scale * T(2.0) * (T(0.5) - speed);
                     }
                 }
-                if(target_distance < params.target_radius * 0.25) {
-                    progress_reward += params.velocity_reward_scale * 2.0; // Even more for inner quarter
+                if(target_distance < params.target_radius * T(0.25)) {
+                    progress_reward += params.velocity_reward_scale * T(2.0); // Even more for inner quarter
                     // Even bigger bonus for hovering near center
                     T speed_sq = linear_vel_cost;
                     T speed = math::sqrt(device.math, speed_sq);
-                    if(speed < 0.3) {
-                        progress_reward += params.velocity_reward_scale * 3.0 * (0.3 - speed);
+                    if(speed < T(0.3)) {
+                        progress_reward += params.velocity_reward_scale * T(3.0) * (T(0.3) - speed);
                     }
                 }
                 
                 // Penalize high speeds when inside the ball to encourage smooth approach
                 T speed_sq = linear_vel_cost;
                 T speed = math::sqrt(device.math, speed_sq);
-                if(speed > 1.0) {
-                    progress_reward -= params.velocity_reward_scale * (speed - 1.0) * 0.5;
+                if(speed > T(1.0)) {
+                    progress_reward -= params.velocity_reward_scale * (speed - T(1.0)) * T(0.5);
                 }
             }
             
-            // Additional velocity reward when moving towards target (but smaller than proximity reward)
+            // Additional velocity reward when moving towards target
             T velocity_towards_target = 0;
             for(TI i = 0; i < 3; i++){
-                T direction_to_target = (params.target_pos[i] - next_state.position[i]) / (target_distance + 1e-6);
+                T direction_to_target = (params.target_pos[i] - next_state.position[i]) / (target_distance + T(1e-6));
                 velocity_towards_target += next_state.linear_velocity[i] * direction_to_target;
             }
             
-            // Only reward moderate forward progress when far from target (don't encourage flying too fast)
-            if(target_distance > params.target_radius && velocity_towards_target > 0) {
-                T vel_reward = velocity_towards_target;
+            // IMPROVED: Stronger reward for moving towards target when far away
+            // This helps the agent explore and discover the target
+            if(target_distance > params.target_radius && velocity_towards_target > T(0)) {
+                // Scale by distance - more reward when farther to encourage exploration
+                T distance_scale = math::min(device.math, target_distance / params.target_radius, T(3.0));
+                T vel_reward = velocity_towards_target * distance_scale;
                 // Cap velocity reward to discourage excessive speed
-                if(vel_reward > 2.0) vel_reward = 2.0;
-                progress_reward += params.velocity_reward_scale * vel_reward * 0.05; // Reduced from 0.1
-            } else if(target_distance < params.target_radius && velocity_towards_target < 0) {
+                if(vel_reward > T(3.0)) vel_reward = T(3.0);
+                progress_reward += params.velocity_reward_scale * vel_reward * T(0.2); // Increased from 0.05
+            } else if(target_distance < params.target_radius && velocity_towards_target < T(0)) {
                 // Penalize moving away from center when already inside the ball
-                progress_reward += params.velocity_reward_scale * velocity_towards_target * 0.3; // Increased penalty
+                progress_reward += params.velocity_reward_scale * velocity_towards_target * T(0.3);
+            }
+            
+            // ANTI-DRIFT: Penalize Z-axis deviation from target
+            T z_error = math::abs(device.math, next_state.position[2] - params.target_pos[2]);
+            if(z_error > T(0.2)) { // If drifting more than 20cm in Z
+                progress_reward -= params.velocity_reward_scale * z_error * T(2.0); // Strong penalty
             }
         }
         

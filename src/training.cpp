@@ -44,7 +44,20 @@ void run() {
             // Copy weights from the included checkpoint to the training actor
             // The checkpoint namespace contains the actor weights
             rlt::copy(ts.device, ts.device, rl_tools::checkpoint::actor::model, ts.actor_critic.actor);
-            std::cout << "Actor weights loaded successfully." << std::endl;
+            
+            // CRITICAL FIX: Reset optimizer state when loading pre-trained weights
+            // The optimizer (Adam) has momentum and adaptive learning rates that were
+            // tuned for the previous task (hover). We MUST reset these for the new task
+            // to avoid catastrophic forgetting and unstable learning.
+            std::cout << "Resetting optimizer states for transfer learning..." << std::endl;
+            rlt::reset_optimizer_state(ts.device, ts.actor_critic.actor_optimizer, ts.actor_critic.actor);
+            rlt::reset_optimizer_state(ts.device, ts.actor_critic.critic_optimizers[0], ts.actor_critic.critic_1);
+            rlt::reset_optimizer_state(ts.device, ts.actor_critic.critic_optimizers[1], ts.actor_critic.critic_2);
+            
+            // Copy actor to actor_target after loading weights (important for TD3 stability)
+            rlt::copy(ts.device, ts.device, ts.actor_critic.actor, ts.actor_critic.actor_target);
+            
+            std::cout << "Actor weights loaded and optimizer states reset successfully." << std::endl;
             #else
             std::cerr << "Warning: Checkpoint path specified (" << CONFIG::ACTOR_CHECKPOINT_INIT_PATH 
                       << ") but no checkpoint file included at compile time. Using random initialization." << std::endl;

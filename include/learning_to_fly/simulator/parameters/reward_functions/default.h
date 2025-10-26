@@ -600,27 +600,28 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions {
     };
 
     // New smooth flight reward function - prioritizes stable, smooth flight with crash penalties
-    // V10: Anti-shivering version - higher acceleration penalties for smoother flight
+    // V14: ROOT CAUSE FIX - Init position was only 0.2m! Agent never trained beyond 0.4m from origin!
+    // Increased init to 0.6m + rebalanced to EMPHASIZE position cost more (per user request)
     template<typename T>
     constexpr PositionToPosition<T> reward_position_to_position_smooth = {
             // Base Squared parameters
-            false, // non-negative
-            0.4, // scale
-            2.5, // constant - good survival reward
+            false, // non_negative
+            0.2, // scale - Back to moderate (V13 was 0.15, too low for stability)
+            4.0, // constant - Keep decent survival reward
             -100, // termination penalty - strong crash penalty
-            5, // position - balanced position cost
-            10, // orientation - high stability
-            0.3, // linear_velocity - REDUCED from 0.5 to allow more movement freedom
-            0.05, // angular_velocity - low to allow rotation freedom
-            0.5, // linear_acceleration - INCREASED from 0.05 to heavily penalize jerkiness!
-            0.5, // angular_acceleration - INCREASED from 0.05 to prevent shivering!
+            1.5, // position - INCREASED from V13's 0.8! Emphasize position cost per user request
+            4.0, // orientation - Keep moderate for stability
+            0.15, // linear_velocity - Allow movement
+            0.02, // angular_velocity - Allow rotation
+            0.2, // linear_acceleration - Smooth movements
+            0.2, // angular_acceleration - Smooth rotation
             RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE,
-            0.03, // action
+            0.02, // action - Moderate action penalty
             
             // PositionToPosition-specific parameters
             {learning_to_fly::constants::TARGET_POSITION_X<T>, learning_to_fly::constants::TARGET_POSITION_Y<T>, learning_to_fly::constants::TARGET_POSITION_Z<T>}, // target_pos
-            0.2, // target_radius (20cm tolerance)
-            1.0, // velocity_reward_scale
+            0.25, // target_radius - 25cm tolerance
+            3.0, // velocity_reward_scale - Moderate progress rewards (V13 was 3.5)
             true  // use_target_progress
     };
 }
