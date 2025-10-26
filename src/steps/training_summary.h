@@ -22,8 +22,20 @@ public:
         using T = typename CONFIG::T;
         using TI = typename CONFIG::TI;
         using ABLATION_SPEC = typename CONFIG::ABLATION_SPEC;
+        
+        // Get environment parameters for accessing termination and other settings
+        auto env_parameters = parameters::environment<T, TI, ABLATION_SPEC>::parameters;
+        
         auto now = std::chrono::system_clock::now();
         auto time_t = std::chrono::system_clock::to_time_t(now);
+        
+        // Ensure the directory exists before creating the file
+        try {
+            std::filesystem::create_directories(log_dir);
+        }
+        catch (std::exception& e) {
+            std::cerr << "Warning: Could not create directory: " << log_dir << " - " << e.what() << std::endl;
+        }
         
         std::string filename = log_dir + "/training_parameters_summary.txt";
         std::ofstream file(filename);
@@ -105,6 +117,16 @@ public:
         file << "Action Dimension: " << CONFIG::ENVIRONMENT::ACTION_DIM << " (motor commands)" << std::endl;
         file << "Observation Dimension: " << CONFIG::ENVIRONMENT::OBSERVATION_DIM << std::endl;
         file << "Observation Dimension Privileged: " << CONFIG::ENVIRONMENT::OBSERVATION_DIM_PRIVILEGED << std::endl;
+        
+        // Add termination configuration
+        file << std::endl;
+        file << "=== TERMINATION CONFIGURATION ===" << std::endl;
+        auto termination_params = env_parameters.mdp.termination;
+        file << "Termination Enabled: " << (termination_params.enabled ? "Yes" : "No") << std::endl;
+        file << "Position Threshold: " << termination_params.position_threshold << " meters (any axis)" << std::endl;
+        file << "Linear Velocity Threshold: " << termination_params.linear_velocity_threshold << " m/s" << std::endl;
+        file << "Angular Velocity Threshold: " << termination_params.angular_velocity_threshold << " rad/s" << std::endl;
+        file << "Note: Episode terminates if any position, velocity, or angular velocity exceeds threshold" << std::endl;
         file << std::endl;
         
         file << "=== ALGORITHM PARAMETERS ===" << std::endl;
