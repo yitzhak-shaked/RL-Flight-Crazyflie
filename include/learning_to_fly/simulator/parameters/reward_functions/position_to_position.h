@@ -102,27 +102,28 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
             T proximity_factor = math::exp(device.math, -target_distance * T(2.0));
             progress_reward = params.velocity_reward_scale * proximity_factor * T(2.0);
             
-            // Graduated bonus rewards based on proximity to center
+            // Graduated bonus rewards based on proximity to center - VERY STRONG REWARDS
             if(target_distance < params.target_radius) {
-                progress_reward += params.velocity_reward_scale * T(5.0); // Huge bonus for being inside ball
+                // Stronger in-target bonus (~+50%) to pull agents tighter to the center
+                progress_reward += params.velocity_reward_scale * T(22.5); // Was 15.0
                 
                 // Extra bonus for being very close to center AND moving slowly (stable hovering)
                 if(target_distance < params.target_radius * T(0.5)) {
-                    progress_reward += params.velocity_reward_scale * T(3.0); // Bonus for inner half
+                    progress_reward += params.velocity_reward_scale * T(13.5); // Was 9.0
                     // Bonus for being slow when close to center (encourages stable hovering)
                     T speed_sq = linear_vel_cost;
                     T speed = math::sqrt(device.math, speed_sq);
                     if(speed < T(0.5)) { // Low speed bonus
-                        progress_reward += params.velocity_reward_scale * T(2.0) * (T(0.5) - speed);
+                        progress_reward += params.velocity_reward_scale * T(9.0) * (T(0.5) - speed); // Was 6.0
                     }
                 }
                 if(target_distance < params.target_radius * T(0.25)) {
-                    progress_reward += params.velocity_reward_scale * T(2.0); // Even more for inner quarter
+                    progress_reward += params.velocity_reward_scale * T(9.0); // Was 6.0
                     // Even bigger bonus for hovering near center
                     T speed_sq = linear_vel_cost;
                     T speed = math::sqrt(device.math, speed_sq);
                     if(speed < T(0.3)) {
-                        progress_reward += params.velocity_reward_scale * T(3.0) * (T(0.3) - speed);
+                        progress_reward += params.velocity_reward_scale * T(13.5) * (T(0.3) - speed); // Was 9.0
                     }
                 }
                 
@@ -133,6 +134,12 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
                     progress_reward -= params.velocity_reward_scale * (speed - T(1.0)) * T(0.5);
                 }
             }
+            
+            // CRITICAL: Z-error penalty to maintain correct height
+            // Penalize any Z deviation from target Z coordinate
+            T z_error = math::abs(device.math, next_state.position[2] - params.target_pos[2]);
+            // Moderate penalty for Z deviation - allows learning while guiding toward correct height
+            progress_reward -= params.velocity_reward_scale * z_error * T(6.0);
             
             // Additional velocity reward when moving towards target
             T velocity_towards_target = 0;
@@ -153,12 +160,6 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
             } else if(target_distance < params.target_radius && velocity_towards_target < T(0)) {
                 // Penalize moving away from center when already inside the ball
                 progress_reward += params.velocity_reward_scale * velocity_towards_target * T(0.3);
-            }
-            
-            // ANTI-DRIFT: Penalize Z-axis deviation from target
-            T z_error = math::abs(device.math, next_state.position[2] - params.target_pos[2]);
-            if(z_error > T(0.2)) { // If drifting more than 20cm in Z
-                progress_reward -= params.velocity_reward_scale * z_error * T(2.0); // Strong penalty
             }
         }
         

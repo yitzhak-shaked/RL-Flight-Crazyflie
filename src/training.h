@@ -99,12 +99,28 @@ namespace learning_to_fly{
         if(ts.step % 10000 == 0){
             std::cout << "Step: " << ts.step << std::endl;
         }
+        
         steps::logger(ts);
         steps::checkpoint(ts);
         steps::validation(ts);
         steps::curriculum(ts);
         rlt::rl::algorithms::td3::loop::step(ts);
         steps::trajectory_collection(ts);
+        
+        // Print evaluation results AFTER they're computed by td3::loop::step
+        if constexpr (CONFIG::DETERMINISTIC_EVALUATION) {
+            if(ts.step > 0 && ts.step % CONFIG::EVALUATION_INTERVAL == 0){
+                TI evaluation_index = ts.step / CONFIG::EVALUATION_INTERVAL;
+                if(evaluation_index > 0 && evaluation_index <= (CONFIG::STEP_LIMIT / CONFIG::EVALUATION_INTERVAL)){
+                    auto& result = ts.evaluation_results[evaluation_index - 1];
+                    std::cout << "📊 Evaluation at step " << ts.step << ":" << std::endl;
+                    std::cout << "   Mean return: " << result.returns_mean 
+                              << " (std: " << result.returns_std << ")" << std::endl;
+                    std::cout << "   Mean episode length: " << result.episode_length_mean 
+                              << " (std: " << result.episode_length_std << ")" << std::endl;
+                }
+            }
+        }
     }
     template <typename CONFIG>
     void destroy(TrainingState<CONFIG>& ts){

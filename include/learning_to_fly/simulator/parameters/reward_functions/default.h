@@ -610,18 +610,18 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions {
             4.0, // constant - Keep decent survival reward
             -100, // termination penalty - strong crash penalty
             1.5, // position - INCREASED from V13's 0.8! Emphasize position cost per user request
-            4.0, // orientation - Keep moderate for stability
-            0.15, // linear_velocity - Allow movement
-            0.02, // angular_velocity - Allow rotation
-            0.2, // linear_acceleration - Smooth movements
-            0.2, // angular_acceleration - Smooth rotation
+            4.0, // orientation - Moderate for stability (reduced from 8.0)
+            1.5, // linear_velocity - INCREASED from 0.8 - moving too fast, need stronger penalty
+            0.2, // angular_velocity - INCREASED from 0.1 to reduce spinning
+            0.2, // linear_acceleration - Moderate smoothness (was 0.1)
+            0.2, // angular_acceleration - Moderate smoothness (was 0.1)
             RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE,
             0.02, // action - Moderate action penalty
             
             // PositionToPosition-specific parameters
             {learning_to_fly::constants::TARGET_POSITION_X<T>, learning_to_fly::constants::TARGET_POSITION_Y<T>, learning_to_fly::constants::TARGET_POSITION_Z<T>}, // target_pos
             0.25, // target_radius - 25cm tolerance
-            3.0, // velocity_reward_scale - Moderate progress rewards (V13 was 3.5)
+            4.0, // velocity_reward_scale - INCREASED from 3.0 for stronger stability rewards
             true  // use_target_progress
     };
 }

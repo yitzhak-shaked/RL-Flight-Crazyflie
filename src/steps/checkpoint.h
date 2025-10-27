@@ -36,10 +36,30 @@ namespace learning_to_fly {
                 std::stringstream checkpoint_name_ss;
                 checkpoint_name_ss << "actor_" << std::setw(15) << std::setfill('0') << ts.step;
                 std::string checkpoint_name = checkpoint_name_ss.str();
+                
+                // Get latest evaluation return if available
+                T current_mean_return = 0;
+                bool has_evaluation = false;
+                if constexpr (CONFIG::DETERMINISTIC_EVALUATION) {
+                    TI evaluation_index = ts.step / CONFIG::EVALUATION_INTERVAL;
+                    if (evaluation_index > 0 && evaluation_index <= (CONFIG::STEP_LIMIT / CONFIG::EVALUATION_INTERVAL)) {
+                        current_mean_return = ts.evaluation_results[evaluation_index - 1].returns_mean;
+                        has_evaluation = true;
+                    }
+                }
+                
+                std::cout << "💾 Saving checkpoint at step " << ts.step;
+                if (has_evaluation) {
+                    std::cout << " | Mean return: " << current_mean_return;
+                    if (current_mean_return >= best_evaluation_return) {
+                        std::cout << " ⭐ (best so far!)";
+                    }
+                }
+                std::cout << std::endl;
 
 #if defined(RL_TOOLS_ENABLE_HDF5) && !defined(RL_TOOLS_DISABLE_HDF5)
                 std::filesystem::path actor_output_path_hdf5 = actor_output_dir / (checkpoint_name + ".h5");
-                std::cout << "Saving actor checkpoint " << actor_output_path_hdf5 << std::endl;
+                std::cout << "  └─ HDF5: " << actor_output_path_hdf5 << std::endl;
                 try{
                     auto actor_file = HighFive::File(actor_output_path_hdf5.string(), HighFive::File::Overwrite);
                     rlt::save(ts.device, ts.actor_critic.actor, actor_file.createGroup("actor"));
@@ -61,7 +81,7 @@ namespace learning_to_fly {
                     rlt::copy(ts.device, ts.device, ts.actor_critic.actor_target, actor_checkpoint);
                     std::filesystem::path actor_output_path_code = actor_output_dir / (checkpoint_name + ".h");
                     auto actor_weights = rlt::save_code(ts.device, actor_checkpoint, std::string("rl_tools::checkpoint::actor"), true);
-                    std::cout << "Saving checkpoint at: " << actor_output_path_code << std::endl;
+                    std::cout << "  └─ Code: " << actor_output_path_code << std::endl;
                     std::ofstream actor_output_file(actor_output_path_code);
                     actor_output_file << actor_weights;
                     {

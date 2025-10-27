@@ -23,8 +23,8 @@ namespace learning_to_fly {
                         }
                         {
                             T position_weight = env.parameters.mdp.reward.position;
-                            position_weight *= 1.2;
-                            T position_weight_limit = 40;
+                            position_weight *= 1.1;  // REDUCED from 1.2 to make curriculum more gradual
+                            T position_weight_limit = 10;  // REDUCED from 40 to prevent overly harsh penalties
                             position_weight = position_weight > position_weight_limit ? position_weight_limit : position_weight;
                             env.parameters.mdp.reward.position = position_weight;
                             rlt::add_scalar(ts.device, ts.device.logger, "reward_function/position_weight", position_weight);
@@ -47,8 +47,8 @@ namespace learning_to_fly {
                 }
             }
             if(CONFIG::ABLATION_SPEC::EXPLORATION_NOISE_DECAY == true){
-                if(ts.step % 100000 == 0 && ts.step >= 500000){
-                    constexpr T noise_decay_base = 0.90;
+                if(ts.step % 100000 == 0 && ts.step >= 1000000){  // Start decay later at 1M instead of 500k
+                    constexpr T noise_decay_base = 0.95;  // More gradual: 0.95 instead of 0.90
                     ts.off_policy_runner.parameters.exploration_noise *= noise_decay_base;
                     ts.actor_critic.target_next_action_noise_std *= noise_decay_base;
                     ts.actor_critic.target_next_action_noise_clip *= noise_decay_base;

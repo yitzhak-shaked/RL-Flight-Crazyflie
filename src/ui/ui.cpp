@@ -392,7 +392,10 @@ public:
         {
             nlohmann::json message;
             message["channel"] = "status";
-            message["data"]["progress"] = ((T)current_step)/CONFIG::STEP_LIMIT;
+            // Use correct STEP_LIMIT based on training mode
+            T step_limit = (current_training_mode == "position-to-position") ? 
+                           POSITION_TO_POSITION_CONFIG::STEP_LIMIT : CONFIG::STEP_LIMIT;
+            message["data"]["progress"] = ((T)current_step)/step_limit;
             message["data"]["time"] = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now() - training_start).count()/1000.0;
             message["data"]["finished"] = current_finished;
             ws_.write(net::buffer(message.dump()));
