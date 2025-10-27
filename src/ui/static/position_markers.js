@@ -4,6 +4,7 @@ class PositionMarkers {
     constructor() {
         this.markers = new THREE.Group()
         this.targetPosition = null // Will be loaded from server
+        this.obstacleMarkers = []  // Track obstacle markers separately
         this.createInitialSpawnAreaMarker()
         this.loadTargetPositionFromServer()
     }
@@ -18,11 +19,18 @@ class PositionMarkers {
                 config.targetPosition.z
             ]
             console.log('Loaded target position from server:', this.targetPosition)
+            
+            // Load obstacles
+            this.obstacles = config.obstacles || []
+            console.log('Loaded obstacles from server:', this.obstacles)
+            
             this.createTargetPositionMarkers()
+            this.createObstacles()
         } catch (error) {
             console.error('Failed to fetch target position from server, using fallback:', error)
             // Fallback to a default position if server config fails
             this.targetPosition = [0.0, 0.0, 0.0]
+            this.obstacles = []
             this.createTargetPositionMarkers()
         }
     }
@@ -108,6 +116,127 @@ class PositionMarkers {
         })
     }
 
+    createObstacles() {
+        console.log('createObstacles called with:', this.obstacles)
+        if (!this.obstacles || this.obstacles.length === 0) {
+            console.log('No obstacles to create')
+            return
+        }
+        
+        console.log(`Creating ${this.obstacles.length} obstacle(s)`)
+
+        this.obstacles.forEach((obstacle, index) => {
+            console.log(`Processing obstacle ${index}:`, obstacle)
+            if (obstacle.type === 'cylinder') {
+                // Create cylindrical pipe obstacle as a HOLLOW TUBE
+                const height = obstacle.zMax - obstacle.zMin
+                
+                // Create outer cylinder
+                const outerGeometry = new THREE.CylinderGeometry(
+                    obstacle.radius,  // radiusTop
+                    obstacle.radius,  // radiusBottom
+                    height,           // height
+                    32,               // radialSegments
+                    1,                // heightSegments
+                    true              // openEnded = true for hollow tube
+                )
+                
+                // Semi-transparent red material for danger/obstacle
+                const tubeMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff0000,
+                    transparent: true,
+                    opacity: 0.3,
+                    side: THREE.DoubleSide  // Render both sides for hollow tube
+                })
+                
+                const tube = new THREE.Mesh(outerGeometry, tubeMaterial)
+                
+                // Position the tube (center is at y=0 for cylinder, so offset by average)
+                const centerZ = (obstacle.zMin + obstacle.zMax) / 2
+                tube.position.set(obstacle.x, obstacle.y, centerZ)
+                
+                // Rotate tube to be vertical (along Z axis)
+                // THREE.js cylinder is vertical along Y by default, we need it along Z
+                tube.rotation.x = Math.PI / 2
+                
+                // Mark as obstacle for visibility control
+                tube.userData.isObstacle = true
+                this.obstacleMarkers.push(tube)
+                this.markers.add(tube)
+                
+                // Add wireframe edges for better visibility of the hollow tube
+                const edges = new THREE.EdgesGeometry(outerGeometry)
+                const edgeMaterial = new THREE.LineBasicMaterial({
+                    color: 0xff0000,
+                    transparent: true,
+                    opacity: 0.8,
+                    linewidth: 2
+                })
+                const wireframe = new THREE.LineSegments(edges, edgeMaterial)
+                wireframe.position.copy(tube.position)
+                wireframe.rotation.copy(tube.rotation)
+                wireframe.userData.isObstacle = true
+                this.obstacleMarkers.push(wireframe)
+                this.markers.add(wireframe)
+                
+                // Add position marker at the base (x, y, z_min)
+                const baseMarkerGeometry = new THREE.SphereGeometry(0.05, 16, 12)
+                const baseMarkerMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffff00,  // Yellow for base position
+                    transparent: true,
+                    opacity: 0.9
+                })
+                const baseMarker = new THREE.Mesh(baseMarkerGeometry, baseMarkerMaterial)
+                baseMarker.position.set(obstacle.x, obstacle.y, obstacle.zMin)
+                baseMarker.userData.isObstacle = true
+                this.obstacleMarkers.push(baseMarker)
+                this.markers.add(baseMarker)
+                
+                // Add position marker at the center (x, y, center_z)
+                const centerMarkerGeometry = new THREE.SphereGeometry(0.05, 16, 12)
+                const centerMarkerMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff00ff,  // Magenta for center position
+                    transparent: true,
+                    opacity: 0.9
+                })
+                const centerMarker = new THREE.Mesh(centerMarkerGeometry, centerMarkerMaterial)
+                centerMarker.position.set(obstacle.x, obstacle.y, centerZ)
+                centerMarker.userData.isObstacle = true
+                this.obstacleMarkers.push(centerMarker)
+                this.markers.add(centerMarker)
+                
+                // Add prominent text label at the top showing PIPE POSITION
+                this.addTextLabel(
+                    `PIPE OBSTACLE ${index + 1}\\nPosition: (${obstacle.x.toFixed(1)}, ${obstacle.y.toFixed(1)})\\nRadius: ${obstacle.radius}m\\nHeight: Z∈[${obstacle.zMin}, ${obstacle.zMax}]`,
+                    obstacle.x,
+                    obstacle.y,
+                    obstacle.zMax + 0.2,
+                    0xff0000
+                )
+                
+                // Add base position label (yellow marker)
+                this.addTextLabel(
+                    `Base\\n(${obstacle.x.toFixed(1)}, ${obstacle.y.toFixed(1)}, ${obstacle.zMin})`,
+                    obstacle.x + 0.15,
+                    obstacle.y + 0.15,
+                    obstacle.zMin,
+                    0xffff00
+                )
+                
+                // Add center position label (magenta marker)
+                this.addTextLabel(
+                    `Center\\n(${obstacle.x.toFixed(1)}, ${obstacle.y.toFixed(1)}, ${centerZ.toFixed(1)})`,
+                    obstacle.x - 0.15,
+                    obstacle.y - 0.15,
+                    centerZ,
+                    0xff00ff
+                )
+                
+                console.log(`Created cylindrical obstacle at (${obstacle.x}, ${obstacle.y}) with radius ${obstacle.radius}m`)
+            }
+        })
+    }
+
     addTextLabel(text, x, y, z, color) {
         // Create a simple text sprite (fallback since we don't have font loading)
         const canvas = document.createElement('canvas')
@@ -155,8 +284,8 @@ class PositionMarkers {
 
         // Hide all target-related markers first
         this.markers.children.forEach(child => {
-            // Keep spawn area and origin always visible
-            if (child === this.spawnAreaMarker || child === this.originMarker) {
+            // Keep spawn area, origin, and obstacles always visible
+            if (child === this.spawnAreaMarker || child === this.originMarker || child.userData.isObstacle) {
                 child.visible = true
                 return
             }
@@ -174,9 +303,10 @@ class PositionMarkers {
             }
         })
         
-        // Always show spawn area for both modes
+        // Always show spawn area, origin, and obstacles for both modes
         if (this.spawnAreaMarker) this.spawnAreaMarker.visible = true
         if (this.originMarker) this.originMarker.visible = true
+        this.obstacleMarkers.forEach(marker => marker.visible = true)
     }
 }
 

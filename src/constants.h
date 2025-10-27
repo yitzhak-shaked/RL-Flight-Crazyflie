@@ -28,6 +28,22 @@ namespace learning_to_fly {
             target_pos[1] = TARGET_POSITION_Y<T>;
             target_pos[2] = TARGET_POSITION_Z<T>;
         }
+        
+        // Cylindrical obstacles (pipes) configuration
+        struct CylindricalObstacle {
+            double x;        // X position
+            double y;        // Y position
+            double radius;   // Radius in meters
+            double z_min;    // Minimum Z (bottom of pipe)
+            double z_max;    // Maximum Z (top of pipe)
+        };
+        
+        // Array of obstacles - can be extended in the future
+        constexpr CylindricalObstacle OBSTACLES[] = {
+            {0.0, 1.0, 0.2, -1.0, 1.0}  // x=0m, y=1m, radius=20cm, z from -1m to +1m
+        };
+        
+        constexpr size_t NUM_OBSTACLES = sizeof(OBSTACLES) / sizeof(OBSTACLES[0]);
     }
 }
 

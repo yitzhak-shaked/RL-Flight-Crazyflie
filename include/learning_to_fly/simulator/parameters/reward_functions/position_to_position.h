@@ -5,6 +5,7 @@
 #include <rl_tools/utils/generic/typing.h>
 #include <rl_tools/utils/generic/vector_operations.h>
 #include "squared.h"
+#include "../../../../../src/constants.h"  // Include obstacle definitions
 
 namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
     template<typename T>
@@ -49,6 +50,65 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
             target_distance_sq += diff * diff;
         }
         target_distance = math::sqrt(device.math, target_distance_sq);
+        
+        // DISTANCE-BASED REWARD: Provide continuous gradient toward target
+        // This "pulls" the drone toward the target, helping it learn to navigate around obstacles
+        // BALANCED: Reduced from 15.0 to prevent overwhelming other reward components
+        T distance_reward = T(0);
+        T max_distance = T(3.0); // Normalize by expected max distance (spawn to target is 2m)
+        T normalized_distance = math::min(device.math, target_distance / max_distance, T(1.0));
+        // Gentler reward for being closer to target
+        distance_reward = (T(1.0) - normalized_distance) * T(3.0); // Reduced from 15.0
+        
+        // // ORIGIN REPULSION: Push drones away from spawn point to encourage exploration
+        // // Calculate HORIZONTAL distance from origin (spawn point at 0,0,0) - ignore Z
+        // T origin_horizontal_distance_sq = next_state.position[0] * next_state.position[0] + 
+        //                                    next_state.position[1] * next_state.position[1];
+        // T origin_horizontal_distance = math::sqrt(device.math, origin_horizontal_distance_sq);
+        
+        // // Penalize being close to origin HORIZONTALLY to encourage moving away and exploring
+        // // Only use horizontal distance so drones don't escape by going up/down
+        // T origin_repulsion_penalty = T(0);
+        // T origin_influence_radius = T(0.5); // Repulsion active within 0.5m of origin (reduced from 1.0m)
+        // if(origin_horizontal_distance < origin_influence_radius) {
+        //     // Gentler penalty the closer to origin
+        //     T origin_proximity_factor = (origin_influence_radius - origin_horizontal_distance) / origin_influence_radius;
+        //     origin_repulsion_penalty = origin_proximity_factor * origin_proximity_factor * T(1.0); // Reduced from 3.0 to 1.0
+        // }
+        
+        // CHECK FOR COLLISION WITH CYLINDRICAL OBSTACLES (PIPES)
+        // If drone collides with any obstacle, immediately terminate with crash penalty
+        bool obstacle_collision = false;
+        T obstacle_avoidance_penalty = T(0);
+        
+        for(size_t obs_idx = 0; obs_idx < learning_to_fly::constants::NUM_OBSTACLES; obs_idx++) {
+            const auto& obstacle = learning_to_fly::constants::OBSTACLES[obs_idx];
+            
+            // Check horizontal distance to pipe center (regardless of Z)
+            T dx = next_state.position[0] - T(obstacle.x);
+            T dy = next_state.position[1] - T(obstacle.y);
+            T horizontal_dist_sq = dx * dx + dy * dy;
+            T horizontal_dist = math::sqrt(device.math, horizontal_dist_sq);
+            
+            // Check if drone is within the Z range of the pipe for collision
+            T drone_z = next_state.position[2];
+            if(drone_z >= T(obstacle.z_min) && drone_z <= T(obstacle.z_max)) {
+                // Collision if within pipe radius
+                if(horizontal_dist < T(obstacle.radius)) {
+                    obstacle_collision = true;
+                    break;
+                }
+                
+                // PROXIMITY PENALTY: Penalize being near the obstacle (within danger zone)
+                // This creates a repulsive force to encourage going around
+                T danger_zone_radius = T(obstacle.radius) * T(2.0); // 2x the pipe radius
+                if(horizontal_dist < danger_zone_radius) {
+                    // Balanced penalty the closer to the obstacle
+                    T proximity_factor = (danger_zone_radius - horizontal_dist) / danger_zone_radius;
+                    obstacle_avoidance_penalty += proximity_factor * proximity_factor * T(3.0); // Reduced from 5.0
+                }
+            }
+        }
         
         // Calculate orientation error (quaternion to desired "facing target" orientation)
         T orientation_error_sq = 0;
@@ -102,28 +162,28 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
             T proximity_factor = math::exp(device.math, -target_distance * T(2.0));
             progress_reward = params.velocity_reward_scale * proximity_factor * T(2.0);
             
-            // Graduated bonus rewards based on proximity to center - VERY STRONG REWARDS
+            // BALANCED: Reduced bonus rewards to prevent reward explosion
             if(target_distance < params.target_radius) {
-                // Stronger in-target bonus (~+50%) to pull agents tighter to the center
-                progress_reward += params.velocity_reward_scale * T(22.5); // Was 15.0
+                // In-target bonus - reduced from 22.5 to 8.0
+                progress_reward += params.velocity_reward_scale * T(8.0);
                 
                 // Extra bonus for being very close to center AND moving slowly (stable hovering)
                 if(target_distance < params.target_radius * T(0.5)) {
-                    progress_reward += params.velocity_reward_scale * T(13.5); // Was 9.0
+                    progress_reward += params.velocity_reward_scale * T(4.0); // Reduced from 13.5
                     // Bonus for being slow when close to center (encourages stable hovering)
                     T speed_sq = linear_vel_cost;
                     T speed = math::sqrt(device.math, speed_sq);
                     if(speed < T(0.5)) { // Low speed bonus
-                        progress_reward += params.velocity_reward_scale * T(9.0) * (T(0.5) - speed); // Was 6.0
+                        progress_reward += params.velocity_reward_scale * T(3.0) * (T(0.5) - speed); // Reduced from 9.0
                     }
                 }
                 if(target_distance < params.target_radius * T(0.25)) {
-                    progress_reward += params.velocity_reward_scale * T(9.0); // Was 6.0
+                    progress_reward += params.velocity_reward_scale * T(3.0); // Reduced from 9.0
                     // Even bigger bonus for hovering near center
                     T speed_sq = linear_vel_cost;
                     T speed = math::sqrt(device.math, speed_sq);
                     if(speed < T(0.3)) {
-                        progress_reward += params.velocity_reward_scale * T(13.5) * (T(0.3) - speed); // Was 9.0
+                        progress_reward += params.velocity_reward_scale * T(4.0) * (T(0.3) - speed); // Reduced from 13.5
                     }
                 }
                 
@@ -135,11 +195,11 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
                 }
             }
             
-            // CRITICAL: Z-error penalty to maintain correct height
+            // BALANCED: Z-error penalty - reduced from 6.0 to 2.0
             // Penalize any Z deviation from target Z coordinate
             T z_error = math::abs(device.math, next_state.position[2] - params.target_pos[2]);
-            // Moderate penalty for Z deviation - allows learning while guiding toward correct height
-            progress_reward -= params.velocity_reward_scale * z_error * T(6.0);
+            // Gentler penalty for Z deviation
+            progress_reward -= params.velocity_reward_scale * z_error * T(2.0);
             
             // Additional velocity reward when moving towards target
             T velocity_towards_target = 0;
@@ -174,11 +234,13 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
         bool terminated_flag = terminated(device, env, next_state, rng);
         components.scaled_weighted_cost = params.scale * components.weighted_cost;
 
-        if(terminated_flag){
+        // Check for obstacle collision or other termination conditions
+        if(terminated_flag || obstacle_collision){
             components.reward = params.termination_penalty;
         }
         else{
-            components.reward = -components.scaled_weighted_cost + params.constant + progress_reward;
+            // Only use distance_reward as attraction - remove all the extra penalties
+            components.reward = -components.scaled_weighted_cost + params.constant + progress_reward + distance_reward;
             components.reward = (components.reward > 0 || !params.non_negative) ? components.reward : 0;
         }
 

@@ -41,6 +41,7 @@ window.onload = function(){
 
   window.drones = {}
   window.origin_coordinate_systems = {}
+  const MAX_DRONES = 20 // Limit number of visible drones for performance
 
   window.removeDrone = id => {
     if(id in window.drones){
@@ -64,6 +65,13 @@ window.onload = function(){
       displayActions = true
     }
   ) => {
+    // Limit number of drones for performance
+    const currentDroneCount = Object.keys(window.drones).length
+    if (currentDroneCount >= MAX_DRONES && !(id in window.drones)) {
+      // console.log(`Skipping drone ${id}, already at max ${MAX_DRONES} drones`)
+      return
+    }
+    
     window.removeDrone(id)
     window.drones[id] = new Drone(model, origin, null, displayIMUCoordinateSystem, displayActions)
     // drone.get().position.set(0, 0.2, 0.2)

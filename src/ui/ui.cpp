@@ -638,7 +638,29 @@ private:
                     << "    \"x\": " << learning_to_fly::constants::TARGET_POSITION_X<float> << ",\n"
                     << "    \"y\": " << learning_to_fly::constants::TARGET_POSITION_Y<float> << ",\n"
                     << "    \"z\": " << learning_to_fly::constants::TARGET_POSITION_Z<float> << "\n"
-                    << "  }\n"
+                    << "  },\n"
+                    << "  \"obstacles\": [\n";
+            
+            // Add all cylindrical obstacles
+            for(size_t i = 0; i < learning_to_fly::constants::NUM_OBSTACLES; i++) {
+                const auto& obs = learning_to_fly::constants::OBSTACLES[i];
+                beast::ostream(response_.body())
+                        << "    {\n"
+                        << "      \"type\": \"cylinder\",\n"
+                        << "      \"x\": " << obs.x << ",\n"
+                        << "      \"y\": " << obs.y << ",\n"
+                        << "      \"radius\": " << obs.radius << ",\n"
+                        << "      \"zMin\": " << obs.z_min << ",\n"
+                        << "      \"zMax\": " << obs.z_max << "\n"
+                        << "    }";
+                if(i < learning_to_fly::constants::NUM_OBSTACLES - 1) {
+                    beast::ostream(response_.body()) << ",";
+                }
+                beast::ostream(response_.body()) << "\n";
+            }
+            
+            beast::ostream(response_.body())
+                    << "  ]\n"
                     << "}\n";
         }
         else if(request_.target() == "/actors"){
