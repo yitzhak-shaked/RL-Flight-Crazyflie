@@ -218,6 +218,7 @@ window.onload = function(){
   ws.onmessage = function(event) {
     let {channel, data} = JSON.parse(event.data)
     if (channel === "addDrone") {
+      console.log("Adding drone:", data.id);
       window.addDrone(data.id, data.origin, data.model || default_model, data.display_options);
     }
     else{
@@ -226,7 +227,8 @@ window.onload = function(){
           window.drones[data.id].setState(data.data)
         }
         else{
-          throw new Error("Drone not found")
+          // Silently skip - drone was not added due to MAX_DRONES limit
+          // console.log("Skipping state update for drone", data.id, "- not in active drones");
         }
       }
       else{
