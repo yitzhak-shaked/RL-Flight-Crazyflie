@@ -101,11 +101,15 @@ namespace learning_to_fly{
         }
         
         steps::logger(ts);
-        steps::checkpoint(ts);
+        // CRITICAL FIX: Move checkpoint AFTER td3::loop::step() so it has access to current evaluation results
+        // steps::checkpoint(ts);  // OLD LOCATION - evaluation results not yet available
         steps::validation(ts);
         steps::curriculum(ts);
-        rlt::rl::algorithms::td3::loop::step(ts);
+        rlt::rl::algorithms::td3::loop::step(ts);  // This computes evaluations
         steps::trajectory_collection(ts);
+        
+        // Checkpoint AFTER evaluation so it can use current results
+        steps::checkpoint(ts);
         
         // Print evaluation results AFTER they're computed by td3::loop::step
         if constexpr (CONFIG::DETERMINISTIC_EVALUATION) {

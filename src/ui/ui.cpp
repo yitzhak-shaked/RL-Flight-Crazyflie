@@ -112,9 +112,11 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     std::atomic<bool> stop_evaluation{false};
     
     // Actor evaluation types
-    using ACTOR_TYPE = decltype(CONFIG::ACTOR_CRITIC_TYPE::actor);
-    ACTOR_TYPE evaluation_actor;
-    typename ACTOR_TYPE::template DoubleBuffer<1> actor_buffer;
+    // CRITICAL FIX: Use ACTOR_CHECKPOINT_TYPE (inference-only, no gradients) instead of ACTOR_TYPE (training network with gradients)
+    // This allows loading actor_target checkpoints which don't have gradient information
+    using ACTOR_EVAL_TYPE = typename CONFIG::ACTOR_CHECKPOINT_TYPE;
+    ACTOR_EVAL_TYPE evaluation_actor;
+    typename ACTOR_EVAL_TYPE::template DoubleBuffer<1> actor_buffer;
     bool actor_loaded = false;
 
 public:

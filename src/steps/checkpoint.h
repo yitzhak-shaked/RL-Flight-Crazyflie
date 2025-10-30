@@ -37,14 +37,18 @@ namespace learning_to_fly {
                 checkpoint_name_ss << "actor_" << std::setw(15) << std::setfill('0') << ts.step;
                 std::string checkpoint_name = checkpoint_name_ss.str();
                 
-                // Get latest evaluation return if available
+                // Get the CURRENT evaluation return if available (checkpoint is now called AFTER td3::loop::step())
                 T current_mean_return = 0;
                 bool has_evaluation = false;
                 if constexpr (CONFIG::DETERMINISTIC_EVALUATION) {
-                    TI evaluation_index = ts.step / CONFIG::EVALUATION_INTERVAL;
-                    if (evaluation_index > 0 && evaluation_index <= (CONFIG::STEP_LIMIT / CONFIG::EVALUATION_INTERVAL)) {
-                        current_mean_return = ts.evaluation_results[evaluation_index - 1].returns_mean;
-                        has_evaluation = true;
+                    // Check if we just completed an evaluation at this step
+                    if (ts.step % CONFIG::EVALUATION_INTERVAL == 0 && ts.step > 0) {
+                        // Get the evaluation that was just computed at this step
+                        TI evaluation_index = ts.step / CONFIG::EVALUATION_INTERVAL;
+                        if (evaluation_index > 0 && evaluation_index <= (CONFIG::STEP_LIMIT / CONFIG::EVALUATION_INTERVAL)) {
+                            current_mean_return = ts.evaluation_results[evaluation_index - 1].returns_mean;
+                            has_evaluation = true;
+                        }
                     }
                 }
                 
@@ -62,7 +66,9 @@ namespace learning_to_fly {
                 std::cout << "  └─ HDF5: " << actor_output_path_hdf5 << std::endl;
                 try{
                     auto actor_file = HighFive::File(actor_output_path_hdf5.string(), HighFive::File::Overwrite);
-                    rlt::save(ts.device, ts.actor_critic.actor, actor_file.createGroup("actor"));
+                    // CRITICAL FIX: Save actor_target (same as .h file) instead of actor (training policy)
+                    // This ensures .h5 and .h files are identical and match the evaluated performance
+                    rlt::save(ts.device, ts.actor_critic.actor_target, actor_file.createGroup("actor"));
                 }
                 catch(HighFive::Exception& e){
                     std::cout << "Error while saving actor: " << e.what() << std::endl;

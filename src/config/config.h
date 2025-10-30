@@ -70,14 +70,14 @@ namespace learning_to_fly{
 
 
             static constexpr bool ACTOR_ENABLE_CHECKPOINTS = !BENCHMARK;  // Re-enabled for actor file generation
-            static constexpr TI ACTOR_CHECKPOINT_INTERVAL = 500000;
+            static constexpr TI ACTOR_CHECKPOINT_INTERVAL = 250000;
             static constexpr bool DETERMINISTIC_EVALUATION = !BENCHMARK;
             static constexpr TI EVALUATION_INTERVAL = 10000;
             static constexpr TI NUM_EVALUATION_EPISODES = 1000;
             static constexpr bool COLLECT_EPISODE_STATS = false;
             static constexpr TI EPISODE_STATS_BUFFER_SIZE = 1000;
             static constexpr TI N_ENVIRONMENTS = 1;  // Cannot increase due to simulator constraints
-            static constexpr TI STEP_LIMIT = 5000001;
+            static constexpr TI STEP_LIMIT = 3000001;
 //            static constexpr TI REPLAY_BUFFER_LIMIT = 3000000;
             static constexpr TI REPLAY_BUFFER_CAP = STEP_LIMIT;
             static constexpr TI ENVIRONMENT_STEP_LIMIT = 2000;  // Increased from 500 to 2000 - gives more time to reach 1m target smoothly
