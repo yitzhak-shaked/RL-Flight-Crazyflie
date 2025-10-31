@@ -655,7 +655,34 @@ private:
                         << "      \"zMin\": " << obs.z_min << ",\n"
                         << "      \"zMax\": " << obs.z_max << "\n"
                         << "    }";
-                if(i < learning_to_fly::constants::NUM_OBSTACLES - 1) {
+                if(i < learning_to_fly::constants::NUM_OBSTACLES - 1 || 
+                   learning_to_fly::constants::NUM_PLANAR_OBSTACLES > 0) {
+                    beast::ostream(response_.body()) << ",";
+                }
+                beast::ostream(response_.body()) << "\n";
+            }
+            
+            // Add all planar obstacles
+            for(size_t i = 0; i < learning_to_fly::constants::NUM_PLANAR_OBSTACLES; i++) {
+                const auto& plane = learning_to_fly::constants::PLANAR_OBSTACLES[i];
+                beast::ostream(response_.body())
+                        << "    {\n"
+                        << "      \"type\": \"plane\",\n"
+                        << "      \"pointX\": " << plane.point_x << ",\n"
+                        << "      \"pointY\": " << plane.point_y << ",\n"
+                        << "      \"pointZ\": " << plane.point_z << ",\n"
+                        << "      \"normalX\": " << plane.normal_x << ",\n"
+                        << "      \"normalY\": " << plane.normal_y << ",\n"
+                        << "      \"normalZ\": " << plane.normal_z << ",\n"
+                        << "      \"thickness\": " << plane.thickness << ",\n"
+                        << "      \"xMin\": " << plane.x_min << ",\n"
+                        << "      \"xMax\": " << plane.x_max << ",\n"
+                        << "      \"yMin\": " << plane.y_min << ",\n"
+                        << "      \"yMax\": " << plane.y_max << ",\n"
+                        << "      \"zMin\": " << plane.z_min << ",\n"
+                        << "      \"zMax\": " << plane.z_max << "\n"
+                        << "    }";
+                if(i < learning_to_fly::constants::NUM_PLANAR_OBSTACLES - 1) {
                     beast::ostream(response_.body()) << ",";
                 }
                 beast::ostream(response_.body()) << "\n";

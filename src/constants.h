@@ -2,6 +2,7 @@
 #define LEARNING_TO_FLY_CONSTANTS_H
 
 #include <array>
+#include <cstddef>
 
 namespace learning_to_fly {
     namespace constants {
@@ -10,7 +11,7 @@ namespace learning_to_fly {
         constexpr T TARGET_POSITION_X = T(0.0);
         
         template<typename T>
-        constexpr T TARGET_POSITION_Y = T(2.0);
+        constexpr T TARGET_POSITION_Y = T(1.2);
         
         template<typename T>
         constexpr T TARGET_POSITION_Z = T(0.0);
@@ -38,12 +39,50 @@ namespace learning_to_fly {
             double z_max;    // Maximum Z (top of pipe)
         };
         
-        // Array of obstacles - can be extended in the future
+        // Array of cylindrical obstacles - can be extended in the future
         constexpr CylindricalObstacle OBSTACLES[] = {
-            {0.0, 1.0, 0.2, -1.0, 1.0}  // x=0m, y=1m, radius=20cm, z from -1m to +1m
+            // {0.0, 1.0, 0.2, -1.0, 1.0}  // x=0m, y=1m, radius=20cm, z from -1m to +1m
         };
         
         constexpr size_t NUM_OBSTACLES = sizeof(OBSTACLES) / sizeof(OBSTACLES[0]);
+        
+        // Planar obstacles (walls) configuration
+        // Plane is defined by: point on plane, normal vector, and bounds
+        struct PlanarObstacle {
+            // Point on the plane
+            double point_x;
+            double point_y;
+            double point_z;
+            
+            // Normal vector (should be normalized)
+            double normal_x;
+            double normal_y;
+            double normal_z;
+            
+            // Half-thickness of the wall (collision if distance < thickness)
+            double thickness;
+            
+            // Bounding box to limit the plane extent (min/max in each dimension)
+            double x_min;
+            double x_max;
+            double y_min;
+            double y_max;
+            double z_min;
+            double z_max;
+        };
+        
+        // Array of planar obstacles - can be extended in the future
+        constexpr PlanarObstacle PLANAR_OBSTACLES[] = {
+            // Vertical wall perpendicular to Y-axis at y=1.0m (halfway between origin and target)
+            {1.0, 0.6, 0.0,    // Point on plane (x, y, z)
+             0.0, 1.0, 0.0,    // Normal vector (pointing in +Y direction)
+             0.1,              // Thickness (10cm)
+             0.0, 1.0,         // X bounds (from 0m to +1m, 1m wide wall)
+             0.95, 1.05,       // Y bounds (wall thickness region around y=1.0)
+             -1.0, 1.0}        // Z bounds (from -1m to +1m height, 2m tall wall)
+        };
+        
+        constexpr size_t NUM_PLANAR_OBSTACLES = sizeof(PLANAR_OBSTACLES) / sizeof(PLANAR_OBSTACLES[0]);
     }
 }
 

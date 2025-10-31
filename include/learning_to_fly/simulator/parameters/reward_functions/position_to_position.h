@@ -110,6 +110,48 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
             }
         }
         
+        // CHECK FOR COLLISION WITH PLANAR OBSTACLES (WALLS)
+        if(!obstacle_collision) {
+            for(size_t plane_idx = 0; plane_idx < learning_to_fly::constants::NUM_PLANAR_OBSTACLES; plane_idx++) {
+                const auto& plane = learning_to_fly::constants::PLANAR_OBSTACLES[plane_idx];
+                
+                T drone_x = next_state.position[0];
+                T drone_y = next_state.position[1];
+                T drone_z = next_state.position[2];
+                
+                // Check if drone is within bounding box of the plane
+                if(drone_x >= T(plane.x_min) && drone_x <= T(plane.x_max) &&
+                   drone_y >= T(plane.y_min) && drone_y <= T(plane.y_max) &&
+                   drone_z >= T(plane.z_min) && drone_z <= T(plane.z_max)) {
+                    
+                    // Calculate signed distance from drone to plane
+                    // Distance = (point - plane_point) · normal
+                    T dx_to_plane = drone_x - T(plane.point_x);
+                    T dy_to_plane = drone_y - T(plane.point_y);
+                    T dz_to_plane = drone_z - T(plane.point_z);
+                    
+                    T signed_distance = dx_to_plane * T(plane.normal_x) + 
+                                       dy_to_plane * T(plane.normal_y) + 
+                                       dz_to_plane * T(plane.normal_z);
+                    
+                    T distance_to_plane = math::abs(device.math, signed_distance);
+                    
+                    // Collision if within thickness
+                    if(distance_to_plane < T(plane.thickness)) {
+                        obstacle_collision = true;
+                        break;
+                    }
+                    
+                    // PROXIMITY PENALTY: Penalize being near the wall
+                    T danger_zone_thickness = T(plane.thickness) * T(3.0); // 3x the wall thickness
+                    if(distance_to_plane < danger_zone_thickness) {
+                        T proximity_factor = (danger_zone_thickness - distance_to_plane) / danger_zone_thickness;
+                        obstacle_avoidance_penalty += proximity_factor * proximity_factor * T(3.0);
+                    }
+                }
+            }
+        }
+        
         // Calculate orientation error (quaternion to desired "facing target" orientation)
         T orientation_error_sq = 0;
         for(TI i = 0; i < 4; i++){

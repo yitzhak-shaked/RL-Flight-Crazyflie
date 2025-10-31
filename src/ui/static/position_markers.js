@@ -233,6 +233,108 @@ class PositionMarkers {
                 )
                 
                 console.log(`Created cylindrical obstacle at (${obstacle.x}, ${obstacle.y}) with radius ${obstacle.radius}m`)
+            } else if (obstacle.type === 'plane') {
+                // Create planar obstacle (wall) with actual thickness
+                console.log(`Creating planar obstacle ${index}:`, obstacle)
+                
+                // Calculate wall dimensions from bounding box
+                const width = obstacle.xMax - obstacle.xMin
+                const height = obstacle.zMax - obstacle.zMin
+                const depth = obstacle.yMax - obstacle.yMin
+                
+                // Calculate center position
+                const centerX = (obstacle.xMin + obstacle.xMax) / 2
+                const centerY = (obstacle.yMin + obstacle.yMax) / 2
+                const centerZ = (obstacle.zMin + obstacle.zMax) / 2
+                
+                // Normalize the normal vector
+                const normalMag = Math.sqrt(
+                    obstacle.normalX * obstacle.normalX +
+                    obstacle.normalY * obstacle.normalY +
+                    obstacle.normalZ * obstacle.normalZ
+                )
+                
+                const nx = obstacle.normalX / normalMag
+                const ny = obstacle.normalY / normalMag
+                const nz = obstacle.normalZ / normalMag
+                
+                // Create a box with actual thickness (use thickness * 2 for full width)
+                // Determine which dimension the normal aligns with
+                let boxWidth, boxHeight, boxDepth
+                
+                if (Math.abs(ny) > 0.9) {
+                    // Normal is along Y axis - wall perpendicular to Y
+                    boxWidth = width          // X dimension
+                    boxHeight = height        // Z dimension  
+                    boxDepth = obstacle.thickness * 2  // Y dimension (thickness)
+                } else if (Math.abs(nx) > 0.9) {
+                    // Normal is along X axis - wall perpendicular to X
+                    boxWidth = obstacle.thickness * 2  // X dimension (thickness)
+                    boxHeight = height        // Z dimension
+                    boxDepth = depth          // Y dimension
+                } else {
+                    // Normal is along Z axis - wall perpendicular to Z
+                    boxWidth = width          // X dimension
+                    boxHeight = obstacle.thickness * 2  // Z dimension (thickness)
+                    boxDepth = depth          // Y dimension
+                }
+                
+                const boxGeometry = new THREE.BoxGeometry(boxWidth, boxDepth, boxHeight)
+                
+                // Semi-transparent orange material for wall
+                const wallMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xffa500,  // Orange
+                    transparent: true,
+                    opacity: 0.4,
+                    side: THREE.DoubleSide
+                })
+                
+                const wallBox = new THREE.Mesh(boxGeometry, wallMaterial)
+                wallBox.position.set(centerX, centerY, centerZ)
+                
+                // Mark as obstacle
+                wallBox.userData.isObstacle = true
+                this.obstacleMarkers.push(wallBox)
+                this.markers.add(wallBox)
+                
+                // Add wireframe edges for better visibility
+                const edges = new THREE.EdgesGeometry(boxGeometry)
+                const edgeMaterial = new THREE.LineBasicMaterial({
+                    color: 0xff6600,  // Dark orange
+                    transparent: true,
+                    opacity: 0.9,
+                    linewidth: 3
+                })
+                const wireframe = new THREE.LineSegments(edges, edgeMaterial)
+                wireframe.position.copy(wallBox.position)
+                wireframe.rotation.copy(wallBox.rotation)
+                wireframe.userData.isObstacle = true
+                this.obstacleMarkers.push(wireframe)
+                this.markers.add(wireframe)
+                
+                // Add center position marker
+                const centerMarkerGeometry = new THREE.SphereGeometry(0.08, 16, 12)
+                const centerMarkerMaterial = new THREE.MeshBasicMaterial({
+                    color: 0xff6600,
+                    transparent: true,
+                    opacity: 0.9
+                })
+                const centerMarker = new THREE.Mesh(centerMarkerGeometry, centerMarkerMaterial)
+                centerMarker.position.set(obstacle.pointX, obstacle.pointY, obstacle.pointZ)
+                centerMarker.userData.isObstacle = true
+                this.obstacleMarkers.push(centerMarker)
+                this.markers.add(centerMarker)
+                
+                // Add text label
+                this.addTextLabel(
+                    `WALL OBSTACLE ${index + 1}\\nCenter: (${centerX.toFixed(1)}, ${centerY.toFixed(1)}, ${centerZ.toFixed(1)})\\nSize: ${width.toFixed(1)}×${height.toFixed(1)}m\\nThickness: ${obstacle.thickness}m`,
+                    centerX,
+                    centerY,
+                    obstacle.zMax + 0.3,
+                    0xff6600
+                )
+                
+                console.log(`Created planar obstacle at center (${centerX}, ${centerY}, ${centerZ}) with size ${width}×${height}m`)
             }
         })
     }
