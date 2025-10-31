@@ -215,7 +215,7 @@ private:
                 rlt::malloc(device, observation);
                 rlt::observe(device, env, state, observation, rng);
                 
-                // Forward pass through actor
+                // Forward pass through actor (deterministic evaluation)
                 rlt::evaluate(device, evaluation_actor, observation, action, actor_buffer);
                 
                 // Step environment

@@ -237,11 +237,23 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
                 }
             }
             
-            // BALANCED: Z-error penalty - reduced from 6.0 to 2.0
-            // Penalize any Z deviation from target Z coordinate
+            // V16: CRITICAL FIX - Treat Z-error EQUALLY to XY-error in distance calculation
+            // Previous versions allowed "fly up and hover above target" exploit
+            // Z-error was penalized separately and weakly, allowing agent to cheat
+            
+            // The target_distance already includes Z component, but we need to ensure
+            // Z-error isn't rewarded by proximity bonuses when XY is close but Z is wrong
             T z_error = math::abs(device.math, next_state.position[2] - params.target_pos[2]);
-            // Gentler penalty for Z deviation
-            progress_reward -= params.velocity_reward_scale * z_error * T(2.0);
+            
+            // STRONG Z-error penalty that scales with velocity_reward_scale
+            // This must be LARGER than proximity bonuses to prevent "hover above target" exploit
+            progress_reward -= params.velocity_reward_scale * z_error * z_error * T(10.0);
+            
+            // Additional exponential penalty for excessive altitude (any Z > 0.5m from target)
+            if(z_error > T(0.5)) {
+                T excess_z = z_error - T(0.5);
+                progress_reward -= params.velocity_reward_scale * excess_z * excess_z * excess_z * T(20.0);
+            }
             
             // Additional velocity reward when moving towards target
             T velocity_towards_target = 0;

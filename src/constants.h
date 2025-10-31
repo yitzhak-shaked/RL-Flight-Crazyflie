@@ -73,13 +73,13 @@ namespace learning_to_fly {
         
         // Array of planar obstacles - can be extended in the future
         constexpr PlanarObstacle PLANAR_OBSTACLES[] = {
-            // Vertical wall perpendicular to Y-axis at y=1.0m (halfway between origin and target)
-            {1.0, 0.6, 0.0,    // Point on plane (x, y, z)
-             0.0, 1.0, 0.0,    // Normal vector (pointing in +Y direction)
-             0.1,              // Thickness (10cm)
-             0.0, 1.0,         // X bounds (from 0m to +1m, 1m wide wall)
-             0.95, 1.05,       // Y bounds (wall thickness region around y=1.0)
-             -1.0, 1.0}        // Z bounds (from -1m to +1m height, 2m tall wall)
+            // // Vertical wall perpendicular to Y-axis at y=1.0m (halfway between origin and target)
+            // {1.0, 0.6, 0.0,    // Point on plane (x, y, z)
+            //  0.0, 1.0, 0.0,    // Normal vector (pointing in +Y direction)
+            //  0.1,              // Thickness (10cm)
+            //  0.0, 1.0,         // X bounds (from 0m to +1m, 1m wide wall)
+            //  0.95, 1.05,       // Y bounds (wall thickness region around y=1.0)
+            //  -1.0, 1.0}        // Z bounds (from -1m to +1m height, 2m tall wall)
         };
         
         constexpr size_t NUM_PLANAR_OBSTACLES = sizeof(PLANAR_OBSTACLES) / sizeof(PLANAR_OBSTACLES[0]);
