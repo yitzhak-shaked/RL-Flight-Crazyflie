@@ -41,13 +41,39 @@ namespace learning_to_fly {
                 current_viz_trajectory.push_back(viz_state);
                 
                 // Evaluate actor_target (THIS IS WHAT GETS SAVED IN CHECKPOINTS!)
+                // WITH POLICY SWITCHING if enabled
                 rlt::MatrixDynamic<rlt::matrix::Specification<T, TI, 1, CONFIG::ENVIRONMENT::OBSERVATION_DIM>> obs;
                 rlt::MatrixDynamic<rlt::matrix::Specification<T, TI, 1, CONFIG::ENVIRONMENT::ACTION_DIM>> act;
                 rlt::malloc(ts.device, obs);
                 rlt::malloc(ts.device, act);
                 
                 rlt::observe(ts.device, viz_env, viz_state, obs, ts.rng_eval);
-                rlt::evaluate(ts.device, ts.actor_critic.actor_target, obs, act, viz_buffer);
+                
+                // Apply policy switching if enabled
+                if (ts.use_policy_switching && ts.hover_actor_loaded) {
+                    // Calculate distance to target
+                    T distance = learning_to_fly::policy_switching::calculate_distance_to_target<T>(viz_state.position);
+                    
+                    if (distance < ts.policy_switch_threshold) {
+                        // Use hover actor with transformed observations
+                        rlt::MatrixDynamic<rlt::matrix::Specification<T, TI, 1, CONFIG::ENVIRONMENT::OBSERVATION_DIM>> transformed_obs;
+                        rlt::malloc(ts.device, transformed_obs);
+                        rlt::copy(ts.device, ts.device, obs, transformed_obs);
+                        
+                        T target_pos[3];
+                        learning_to_fly::constants::get_target_position<T>(target_pos);
+                        learning_to_fly::policy_switching::transform_observation_to_target_relative(ts.device, transformed_obs, target_pos);
+                        
+                        rlt::evaluate(ts.device, ts.hover_actor, transformed_obs, act, ts.hover_actor_buffer);
+                        rlt::free(ts.device, transformed_obs);
+                    } else {
+                        // Use navigation actor_target
+                        rlt::evaluate(ts.device, ts.actor_critic.actor_target, obs, act, viz_buffer);
+                    }
+                } else {
+                    // No policy switching - use actor_target only
+                    rlt::evaluate(ts.device, ts.actor_critic.actor_target, obs, act, viz_buffer);
+                }
                 
                 typename CONFIG::ENVIRONMENT::State next_viz_state;
                 rlt::step(ts.device, viz_env, viz_state, act, next_viz_state, ts.rng_eval);

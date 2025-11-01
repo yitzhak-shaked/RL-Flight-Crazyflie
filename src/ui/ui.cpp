@@ -115,16 +115,23 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     // CRITICAL FIX: Use ACTOR_CHECKPOINT_TYPE (inference-only, no gradients) instead of ACTOR_TYPE (training network with gradients)
     // This allows loading actor_target checkpoints which don't have gradient information
     using ACTOR_EVAL_TYPE = typename CONFIG::ACTOR_CHECKPOINT_TYPE;
-    ACTOR_EVAL_TYPE evaluation_actor;
+    ACTOR_EVAL_TYPE evaluation_actor;  // Main actor (navigation with obstacles)
+    ACTOR_EVAL_TYPE hover_actor;       // Hover actor for stability at target
     typename ACTOR_EVAL_TYPE::template DoubleBuffer<1> actor_buffer;
+    typename ACTOR_EVAL_TYPE::template DoubleBuffer<1> hover_actor_buffer;
     bool actor_loaded = false;
+    bool hover_actor_loaded = false;
+    bool use_policy_switching = false;  // Enable/disable policy switching
+    T switch_distance_threshold = T(0.3);  // Distance threshold for switching to hover policy
 
 public:
     explicit websocket_session(tcp::socket socket) : ws_(std::move(socket)), timer_(ws_.get_executor()) {
         env.parameters = parameters::environment<T, TI, CONFIG::ABLATION_SPEC>::parameters;
         rlt::malloc(device, action);
         rlt::malloc(device, evaluation_actor);
+        rlt::malloc(device, hover_actor);
         rlt::malloc(device, actor_buffer);
+        rlt::malloc(device, hover_actor_buffer);
     }
 
 private:
@@ -135,16 +142,51 @@ private:
                 auto file = HighFive::File(actor_path, HighFive::File::ReadOnly);
                 rlt::load(device, evaluation_actor, file.getGroup("actor"));
                 actor_loaded = true;
-                std::cout << "Successfully loaded actor from: " << actor_path << std::endl;
+                std::cout << "Successfully loaded navigation actor from: " << actor_path << std::endl;
                 return true;
             } else {
                 std::cerr << "Unsupported actor file format: " << actor_path << std::endl;
                 return false;
             }
         } catch (const std::exception& e) {
-            std::cerr << "Error loading actor from " << actor_path << ": " << e.what() << std::endl;
+            std::cerr << "Error loading navigation actor from " << actor_path << ": " << e.what() << std::endl;
             return false;
         }
+    }
+
+    bool load_hover_actor_from_file(const std::string& hover_actor_path) {
+        try {
+            if (ends_with(hover_actor_path, ".h5")) {
+                // Load HDF5 hover actor
+                auto file = HighFive::File(hover_actor_path, HighFive::File::ReadOnly);
+                rlt::load(device, hover_actor, file.getGroup("actor"));
+                hover_actor_loaded = true;
+                std::cout << "Successfully loaded hover actor from: " << hover_actor_path << std::endl;
+                return true;
+            } else {
+                std::cerr << "Unsupported hover actor file format: " << hover_actor_path << std::endl;
+                return false;
+            }
+        } catch (const std::exception& e) {
+            std::cerr << "Error loading hover actor from " << hover_actor_path << ": " << e.what() << std::endl;
+            return false;
+        }
+    }
+    
+    void enable_policy_switching(const std::string& hover_actor_path, T threshold = T(POSITION_TO_POSITION_CONFIG::POLICY_SWITCH_THRESHOLD)) {
+        if (load_hover_actor_from_file(hover_actor_path)) {
+            use_policy_switching = true;
+            switch_distance_threshold = threshold;
+            std::cout << "Policy switching enabled with threshold: " << threshold << "m" << std::endl;
+        } else {
+            std::cerr << "Failed to enable policy switching - hover actor not loaded" << std::endl;
+            use_policy_switching = false;
+        }
+    }
+    
+    void disable_policy_switching() {
+        use_policy_switching = false;
+        std::cout << "Policy switching disabled" << std::endl;
     }
 
     void start_actor_evaluation(const std::string& actor_path) {
@@ -215,8 +257,53 @@ private:
                 rlt::malloc(device, observation);
                 rlt::observe(device, env, state, observation, rng);
                 
-                // Forward pass through actor (deterministic evaluation)
-                rlt::evaluate(device, evaluation_actor, observation, action, actor_buffer);
+                // ============================================================================
+                // POLICY SWITCHING: Distance-Based Actor Selection
+                // ============================================================================
+                if (use_policy_switching && hover_actor_loaded) {
+                    // Calculate distance to target
+                    T target_pos[3];
+                    learning_to_fly::constants::get_target_position(target_pos);
+                    
+                    T distance_sq = T(0);
+                    for (TI i = 0; i < 3; i++) {
+                        T diff = state.position[i] - target_pos[i];
+                        distance_sq += diff * diff;
+                    }
+                    T distance = rlt::math::sqrt(device.math, distance_sq);
+                    
+                    if (distance < switch_distance_threshold) {
+                        // CLOSE TO TARGET: Use hover actor
+                        // Modify observation to be relative to target (hover actor expects origin at setpoint)
+                        rlt::MatrixDynamic<rlt::matrix::Specification<T, TI, 1, ENVIRONMENT::OBSERVATION_DIM>> hover_observation;
+                        rlt::malloc(device, hover_observation);
+                        
+                        // Copy observation and shift position to be relative to target
+                        for (TI i = 0; i < ENVIRONMENT::OBSERVATION_DIM; i++) {
+                            rlt::set(hover_observation, 0, i, rlt::get(observation, 0, i));
+                        }
+                        
+                        // Modify position components (first 3 elements of observation)
+                        // to be relative to target instead of origin
+                        for (TI i = 0; i < 3; i++) {
+                            T pos_value = rlt::get(hover_observation, 0, i);
+                            // Convert from absolute position to position relative to target
+                            T relative_pos = pos_value - target_pos[i];
+                            rlt::set(hover_observation, 0, i, relative_pos);
+                        }
+                        
+                        // Use hover actor
+                        rlt::evaluate(device, hover_actor, hover_observation, action, hover_actor_buffer);
+                        
+                        rlt::free(device, hover_observation);
+                    } else {
+                        // FAR FROM TARGET: Use navigation actor
+                        rlt::evaluate(device, evaluation_actor, observation, action, actor_buffer);
+                    }
+                } else {
+                    // NO POLICY SWITCHING: Use main evaluation actor only
+                    rlt::evaluate(device, evaluation_actor, observation, action, actor_buffer);
+                }
                 
                 // Step environment
                 typename ENVIRONMENT::State next_state;
@@ -458,8 +545,22 @@ public:
                     if constexpr (has_checkpoint_path) {
                         #ifdef ACTOR_CHECKPOINT_FILE
                         std::cout << "Loading actor weights from checkpoint: " << POSITION_TO_POSITION_CONFIG::ACTOR_CHECKPOINT_INIT_PATH << std::endl;
+                        // Copy weights from the included checkpoint to the training actor
                         rlt::copy(this->ts_position_to_position.device, this->ts_position_to_position.device, rl_tools::checkpoint::actor::model, this->ts_position_to_position.actor_critic.actor);
-                        std::cout << "Actor weights loaded successfully." << std::endl;
+                        
+                        // CRITICAL FIX: Reset optimizer state when loading pre-trained weights
+                        // The optimizer (Adam) has momentum and adaptive learning rates that were
+                        // tuned for the previous task. We MUST reset these for the new task
+                        // to avoid catastrophic forgetting and unstable learning.
+                        std::cout << "Resetting optimizer states for transfer learning..." << std::endl;
+                        rlt::reset_optimizer_state(this->ts_position_to_position.device, this->ts_position_to_position.actor_critic.actor_optimizer, this->ts_position_to_position.actor_critic.actor);
+                        rlt::reset_optimizer_state(this->ts_position_to_position.device, this->ts_position_to_position.actor_critic.critic_optimizers[0], this->ts_position_to_position.actor_critic.critic_1);
+                        rlt::reset_optimizer_state(this->ts_position_to_position.device, this->ts_position_to_position.actor_critic.critic_optimizers[1], this->ts_position_to_position.actor_critic.critic_2);
+                        
+                        // Copy actor to actor_target after loading weights (important for TD3 stability)
+                        rlt::copy(this->ts_position_to_position.device, this->ts_position_to_position.device, this->ts_position_to_position.actor_critic.actor, this->ts_position_to_position.actor_critic.actor_target);
+                        
+                        std::cout << "Actor weights loaded and optimizer states reset successfully." << std::endl;
                         #else
                         std::cerr << "Warning: Checkpoint path specified (" << POSITION_TO_POSITION_CONFIG::ACTOR_CHECKPOINT_INIT_PATH 
                                   << ") but no checkpoint file included at compile time. Using random initialization." << std::endl;
@@ -479,8 +580,22 @@ public:
                     if constexpr (has_checkpoint_path) {
                         #ifdef ACTOR_CHECKPOINT_FILE
                         std::cout << "Loading actor weights from checkpoint: " << CONFIG::ACTOR_CHECKPOINT_INIT_PATH << std::endl;
+                        // Copy weights from the included checkpoint to the training actor
                         rlt::copy(this->ts_hover.device, this->ts_hover.device, rl_tools::checkpoint::actor::model, this->ts_hover.actor_critic.actor);
-                        std::cout << "Actor weights loaded successfully." << std::endl;
+                        
+                        // CRITICAL FIX: Reset optimizer state when loading pre-trained weights
+                        // The optimizer (Adam) has momentum and adaptive learning rates that were
+                        // tuned for the previous task. We MUST reset these for the new task
+                        // to avoid catastrophic forgetting and unstable learning.
+                        std::cout << "Resetting optimizer states for transfer learning..." << std::endl;
+                        rlt::reset_optimizer_state(this->ts_hover.device, this->ts_hover.actor_critic.actor_optimizer, this->ts_hover.actor_critic.actor);
+                        rlt::reset_optimizer_state(this->ts_hover.device, this->ts_hover.actor_critic.critic_optimizers[0], this->ts_hover.actor_critic.critic_1);
+                        rlt::reset_optimizer_state(this->ts_hover.device, this->ts_hover.actor_critic.critic_optimizers[1], this->ts_hover.actor_critic.critic_2);
+                        
+                        // Copy actor to actor_target after loading weights (important for TD3 stability)
+                        rlt::copy(this->ts_hover.device, this->ts_hover.device, this->ts_hover.actor_critic.actor, this->ts_hover.actor_critic.actor_target);
+                        
+                        std::cout << "Actor weights loaded and optimizer states reset successfully." << std::endl;
                         #else
                         std::cerr << "Warning: Checkpoint path specified (" << CONFIG::ACTOR_CHECKPOINT_INIT_PATH 
                                   << ") but no checkpoint file included at compile time. Using random initialization." << std::endl;
@@ -512,6 +627,19 @@ public:
             else if (action == "stop") {
                 std::cout << "Stopping actor evaluation" << std::endl;
                 stop_actor_evaluation();
+            }
+            else if (action == "enablePolicySwitching") {
+                std::string hover_actor_path = message["data"]["hoverActorPath"];
+                T threshold = message["data"].contains("threshold") ? 
+                    T(message["data"]["threshold"].get<double>()) : 
+                    T(POSITION_TO_POSITION_CONFIG::POLICY_SWITCH_THRESHOLD); // Use same threshold as training
+                std::cout << "Enabling policy switching with hover actor: " << hover_actor_path 
+                          << " (threshold: " << threshold << "m)" << std::endl;
+                enable_policy_switching(hover_actor_path, threshold);
+            }
+            else if (action == "disablePolicySwitching") {
+                std::cout << "Disabling policy switching" << std::endl;
+                disable_policy_switching();
             }
         }
 
