@@ -55,6 +55,11 @@ namespace learning_to_fly{
             static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hoverActor_000000000300000.h";
             // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/position_to_position_2m_good_agents/actor_000000002400000.h";
 
+            // Policy switching configuration
+            // Enable distance-based switching between navigation and hover actors during training
+            static constexpr bool ENABLE_POLICY_SWITCHING = true;  // ENABLED for training with policy switching
+            static constexpr const char* HOVER_ACTOR_PATH = "actors/hoverActor_000000000300000.h5";
+            static constexpr T POLICY_SWITCH_THRESHOLD = T(0.3);  // Distance threshold in meters (increased for visibility)
 
             using ACTOR_CRITIC_CONFIG = ActorAndCritic<T, TI, ENVIRONMENT, TD3_PARAMETERS>;
             static constexpr bool ASYMMETRIC_OBSERVATIONS = ACTOR_CRITIC_CONFIG::ASYMMETRIC_OBSERVATIONS;
@@ -71,14 +76,14 @@ namespace learning_to_fly{
 
 
             static constexpr bool ACTOR_ENABLE_CHECKPOINTS = !BENCHMARK;  // Re-enabled for actor file generation
-            static constexpr TI ACTOR_CHECKPOINT_INTERVAL = 250000;
+            static constexpr TI ACTOR_CHECKPOINT_INTERVAL = 200000;
             static constexpr bool DETERMINISTIC_EVALUATION = !BENCHMARK;
             static constexpr TI EVALUATION_INTERVAL = 10000;
             static constexpr TI NUM_EVALUATION_EPISODES = 1000;
             static constexpr bool COLLECT_EPISODE_STATS = false;
             static constexpr TI EPISODE_STATS_BUFFER_SIZE = 1000;
             static constexpr TI N_ENVIRONMENTS = 1;  // Cannot increase due to simulator constraints
-            static constexpr TI STEP_LIMIT = 3000001;
+            static constexpr TI STEP_LIMIT = 2000001;
 //            static constexpr TI REPLAY_BUFFER_LIMIT = 3000000;
             static constexpr TI REPLAY_BUFFER_CAP = STEP_LIMIT;
             static constexpr TI ENVIRONMENT_STEP_LIMIT = 1500;  // Increased from 500 to 1500 - gives more time to reach 1m target smoothly
