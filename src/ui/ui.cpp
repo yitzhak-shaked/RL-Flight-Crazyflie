@@ -28,6 +28,7 @@ namespace rlt = rl_tools;
 //#include "../td3/parameters.h"
 #include "../training.h"
 #include "../constants.h"
+#include "../policy_switching.h"
 
 // Include checkpoint file if path is specified at compile time
 #ifdef ACTOR_CHECKPOINT_FILE
@@ -203,6 +204,37 @@ private:
             return;
         }
 
+        // Automatically try to load hover actor if policy switching is enabled in config
+        bool hover_loaded = false;
+        
+        if constexpr (POSITION_TO_POSITION_CONFIG::ENABLE_POLICY_SWITCHING) {
+            // Use hover actor path from config (same as training)
+            std::string hover_actor_path = POSITION_TO_POSITION_CONFIG::HOVER_ACTOR_PATH;
+            
+            if (!hover_actor_path.empty() && std::filesystem::exists(hover_actor_path)) {
+                std::cout << "Loading hover actor from config: " << hover_actor_path << std::endl;
+                if (load_hover_actor_from_file(hover_actor_path)) {
+                    use_policy_switching = true;
+                    switch_distance_threshold = T(POSITION_TO_POSITION_CONFIG::POLICY_SWITCH_THRESHOLD);
+                    std::cout << "Policy switching automatically enabled for evaluation (threshold: " 
+                              << switch_distance_threshold << "m)" << std::endl;
+                    hover_loaded = true;
+                }
+            } else {
+                std::cout << "Warning: Policy switching enabled in config but hover actor not found at: " 
+                          << hover_actor_path << std::endl;
+            }
+        }
+        
+        if (!hover_loaded) {
+            if constexpr (POSITION_TO_POSITION_CONFIG::ENABLE_POLICY_SWITCHING) {
+                std::cout << "Policy switching disabled - hover actor not available" << std::endl;
+            } else {
+                std::cout << "Policy switching disabled in config - evaluation will use navigation actor only" << std::endl;
+            }
+            use_policy_switching = false;
+        }
+
         stop_evaluation = false;
         is_evaluating = true;
         
@@ -261,38 +293,23 @@ private:
                 // POLICY SWITCHING: Distance-Based Actor Selection
                 // ============================================================================
                 if (use_policy_switching && hover_actor_loaded) {
-                    // Calculate distance to target
-                    T target_pos[3];
-                    learning_to_fly::constants::get_target_position(target_pos);
-                    
-                    T distance_sq = T(0);
-                    for (TI i = 0; i < 3; i++) {
-                        T diff = state.position[i] - target_pos[i];
-                        distance_sq += diff * diff;
-                    }
-                    T distance = rlt::math::sqrt(device.math, distance_sq);
+                    // Calculate distance to target using helper function
+                    T distance = learning_to_fly::policy_switching::calculate_distance_to_target<T>(state.position);
                     
                     if (distance < switch_distance_threshold) {
-                        // CLOSE TO TARGET: Use hover actor
-                        // Modify observation to be relative to target (hover actor expects origin at setpoint)
+                        // CLOSE TO TARGET: Use hover actor with transformed observation
                         rlt::MatrixDynamic<rlt::matrix::Specification<T, TI, 1, ENVIRONMENT::OBSERVATION_DIM>> hover_observation;
                         rlt::malloc(device, hover_observation);
                         
-                        // Copy observation and shift position to be relative to target
-                        for (TI i = 0; i < ENVIRONMENT::OBSERVATION_DIM; i++) {
-                            rlt::set(hover_observation, 0, i, rlt::get(observation, 0, i));
-                        }
+                        // Copy observation
+                        rlt::copy(device, device, observation, hover_observation);
                         
-                        // Modify position components (first 3 elements of observation)
-                        // to be relative to target instead of origin
-                        for (TI i = 0; i < 3; i++) {
-                            T pos_value = rlt::get(hover_observation, 0, i);
-                            // Convert from absolute position to position relative to target
-                            T relative_pos = pos_value - target_pos[i];
-                            rlt::set(hover_observation, 0, i, relative_pos);
-                        }
+                        // Transform to target-relative coordinates using helper function
+                        T target_pos[3];
+                        learning_to_fly::constants::get_target_position<T>(target_pos);
+                        learning_to_fly::policy_switching::transform_observation_to_target_relative(device, hover_observation, target_pos);
                         
-                        // Use hover actor
+                        // Evaluate hover actor
                         rlt::evaluate(device, hover_actor, hover_observation, action, hover_actor_buffer);
                         
                         rlt::free(device, hover_observation);
