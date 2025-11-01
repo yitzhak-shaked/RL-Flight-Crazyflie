@@ -272,8 +272,52 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
                 if(vel_reward > T(3.0)) vel_reward = T(3.0);
                 progress_reward += params.velocity_reward_scale * vel_reward * T(0.2); // Increased from 0.05
             } else if(target_distance < params.target_radius && velocity_towards_target < T(0)) {
-                // Penalize moving away from center when already inside the ball
-                progress_reward += params.velocity_reward_scale * velocity_towards_target * T(0.3);
+                // OLD WEAK PENALTY (replaced below): Penalize moving away from center when already inside the ball
+                // progress_reward += params.velocity_reward_scale * velocity_towards_target * T(0.3);
+            }
+            
+            // ============================================================================
+            // ANTI-DRIFT MECHANISM: Strongly penalize leaving the target zone once reached
+            // ============================================================================
+            // This is the key fix for the drift problem - agents reach target but don't stay
+            if(target_distance < params.target_radius) {
+                // Calculate total speed (linear + angular contribution)
+                T linear_speed = math::sqrt(device.math, linear_vel_cost);
+                T angular_speed = math::sqrt(device.math, angular_vel_cost);
+                
+                // PENALTY 1: Exponential penalty for outward velocity (moving away from target)
+                if(velocity_towards_target < T(0)) {
+                    // Quadratic penalty for outward velocity - MUCH stronger than old 0.3 scale
+                    T drift_penalty = velocity_towards_target * velocity_towards_target * T(15.0);
+                    progress_reward -= params.velocity_reward_scale * drift_penalty;
+                    
+                    // Extra penalty if drifting fast (speed above threshold)
+                    if(linear_speed > T(0.3)) {
+                        progress_reward -= params.velocity_reward_scale * linear_speed * T(10.0);
+                    }
+                }
+                
+                // REWARD 1: Strong bonus for hovering (nearly zero velocity) when inside target
+                // This encourages the hover behavior learned from the pre-trained hover actor
+                if(linear_speed < T(0.15)) {
+                    // Massive reward for being nearly stationary at target
+                    // Linear interpolation from 0.15 to 0: higher reward for lower speed
+                    T stillness_bonus = (T(0.15) - linear_speed) * T(25.0);
+                    progress_reward += params.velocity_reward_scale * stillness_bonus;
+                }
+                
+                // REWARD 2: Additional bonus for low angular velocity (stable orientation)
+                if(angular_speed < T(0.2)) {
+                    T angular_stillness_bonus = (T(0.2) - angular_speed) * T(15.0);
+                    progress_reward += params.velocity_reward_scale * angular_stillness_bonus;
+                }
+                
+                // PENALTY 2: Penalize any speed above hovering threshold
+                // This creates a strong "settling basin" at the target
+                if(linear_speed > T(0.5)) {
+                    T excess_speed = linear_speed - T(0.5);
+                    progress_reward -= params.velocity_reward_scale * excess_speed * excess_speed * T(8.0);
+                }
             }
         }
         
