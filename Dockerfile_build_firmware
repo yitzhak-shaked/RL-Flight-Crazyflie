@@ -8,4 +8,4 @@ RUN git submodule update --init -- external/rl_tools # non-recursive because we 
 WORKDIR /controller/external/crazyflie_firmware
 RUN make cf2_defconfig
 WORKDIR /controller
-CMD ["bash", "-c", "make -j$(nproc) && cp build/cf2.bin /output/cf2.bin"]
+CMD ["bash", "-c", "make -j$(nproc) ENABLE_POLICY_SWITCHING=${ENABLE_POLICY_SWITCHING:-0} && cp build/cf2.bin /output/cf2.bin"]
