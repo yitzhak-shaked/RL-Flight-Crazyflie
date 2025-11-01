@@ -44,7 +44,10 @@ sudo /home/shaked/Projects/crazyflie-clients-python/venv/bin/cfloader \
 #=============================================================================
 First flights:
 1. Connect with the regular cfclient UI.
-2. Position estimation: you’ll need a flow/deck or external motion capture.
+2. Position estimation: you'll need a flow/deck or external motion capture.
+
+:~$ Policy Switching Mode (navigation + hover actors):
+python3 scripts/trigger.py --mode policy_switching --height 0.3 --ps-threshold 0.5
 
 :~$ Take off with stock controller, then switch to learned hover policy:
 python3 scripts/trigger.py --mode takeoff_and_switch --height 0.3
