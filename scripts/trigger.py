@@ -146,16 +146,75 @@ def mode_takeoff_and_switch(cf, args):
                 print('\nSwitching to learned Policy!!!\n')
             send_learned_policy_packet(cf)
 
+def mode_policy_switching(cf, args):
+    """
+    Mode for testing policy switching between navigation and hover actors.
+    Takes off with original controller, then switches to learned policy.
+    The learned policy automatically switches between navigation and hover actors
+    based on distance to target (0.0, 1.2, height).
+    """
+    set_param(cf, "rlt.trigger", 0) # setting the trigger mode to the custom command
+    set_param(cf, "rlt.wn", 1) # Position mode
+    set_param(cf, "rlt.target_z", 0)
+    set_param(cf, "rlt.motor_warmup", 0)
+    
+    # Enable policy switching in firmware
+    set_param(cf, "rlt.ps_enable", 1)
+    set_param(cf, "rlt.ps_thresh", args.ps_threshold)
+    
+    print(f"\n{'='*60}")
+    print(f"Policy Switching Mode")
+    print(f"{'='*60}")
+    print(f"Target position: (0.0, 1.2, {args.height})")
+    print(f"Switching threshold: {args.ps_threshold}m")
+    print(f"Navigation actor: distance > {args.ps_threshold}m")
+    print(f"Hover actor: distance < {args.ps_threshold}m")
+    print(f"{'='*60}\n")
+    
+    flag = False
+    input("Press enter to start hovering")
+    prev = time.time()
+    acc = 0
+    cnt = 0
+    start_time = time.time()
+    while True:
+        i = input("Hold enter to fly")
+        if i == "q":
+            break
+        current = time.time()
+        acc += current - prev
+        cnt += 1
+        if cnt % 100 == 0:
+            print(f"Average rate: {1/(acc / cnt):.3f}Hz")
+            acc = 0
+            cnt = 0
+        now = time.time()
+        if current - prev > 0.1:
+            start_time = now
+        prev = current
+
+        if now - start_time < args.transition_timeout:
+            send_hover_packet(cf, args.height)
+        else:
+            if not flag:
+                flag = True
+                print('\n' + '='*60)
+                print('Switched to learned policy with actor switching!')
+                print('Watch for automatic transitions near target')
+                print('='*60 + '\n')
+            send_learned_policy_packet(cf)
+
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     default_uri = 'radio://0/80/2M/E7E7E7E7E7'
     parser.add_argument('--uri', default=default_uri)
     parser.add_argument('--height', default=0.2, type=float)
-    parser.add_argument('--mode', default='hover_learned', choices=['hover_learned', 'hover_original', 'takeoff_and_switch', 'trajectory_tracking'])
+    parser.add_argument('--mode', default='hover_learned', choices=['hover_learned', 'hover_original', 'takeoff_and_switch', 'trajectory_tracking', 'policy_switching'])
     parser.add_argument('--trajectory-scale', default=1, type=float, help="Scale of the trajectory")
     parser.add_argument('--trajectory-interval', default=5.5, type=float, help="Interval of the trajectory")
     parser.add_argument('--transition-timeout', default=3, type=float, help="Time after takeoff with the original controller after which the learned controller is used for trajectory tracking")
+    parser.add_argument('--ps-threshold', default=0.5, type=float, help="Distance threshold for policy switching (meters)")
 
     args = parser.parse_args()
     uri = uri_helper.uri_from_env(default=default_uri)
@@ -170,6 +229,8 @@ if __name__ == '__main__':
             mode_takeoff_and_switch(scf.cf, args)
         elif args.mode == "trajectory_tracking":
             mode_trajectory_tracking(scf.cf, args)
+        elif args.mode == "policy_switching":
+            mode_policy_switching(scf.cf, args)
         else:
             print("Unknown mode")# 
 
