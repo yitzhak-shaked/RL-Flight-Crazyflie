@@ -265,15 +265,18 @@ private:
     void evaluate_actor_loop() {
         const TI max_episode_steps = 600;
         TI episode_count = 0;
-        auto rng = rlt::random::default_engine(typename CONFIG::DEVICE::SPEC::RANDOM(), 10);
         
         while (!stop_evaluation) {
+            // Create new RNG with time-based seed for each episode to get different initial conditions
+            auto seed = std::chrono::high_resolution_clock::now().time_since_epoch().count() + episode_count;
+            auto rng = rlt::random::default_engine(typename CONFIG::DEVICE::SPEC::RANDOM(), seed);
+            
             // Reset policy switch state for new episode
             policy_switched_to_hover = false;
             
-            // Create environment state
+            // Create environment state with randomized initial position, velocity, and orientation
             typename ENVIRONMENT::State state;
-            rlt::initial_state(device, env, state);
+            rlt::sample_initial_state(device, env, state, rng);
             
             // Create drone for visualization
             TI drone_id = drone_id_counter++;
