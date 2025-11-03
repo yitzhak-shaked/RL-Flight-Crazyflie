@@ -14,8 +14,8 @@ class Drone{
     // this.drone.add((new CoordinateSystem(10 * model.mass, 0.1 * model.mass)).get())
     
     // Create materials for center body that can be changed for actor switching
-    this.navigatorMaterial = new THREE.MeshLambertMaterial({color: 0xAAAAAA}) // Gray for navigator
-    this.hoverMaterial = new THREE.MeshLambertMaterial({color: 0x00AAFF}) // Cyan/blue for hover
+    this.navigatorMaterial = new THREE.MeshLambertMaterial({color: 0xFF6B00}) // Vibrant orange for navigator
+    this.hoverMaterial = new THREE.MeshLambertMaterial({color: 0x00FFFF}) // Bright cyan for hover
     const material = this.navigatorMaterial
     
     const clockwise_rotor_material = new THREE.MeshLambertMaterial({color: 0x00FF00})
@@ -130,7 +130,7 @@ class Drone{
       this.arms.forEach(arm => {
         arm.material = material
       })
-      // console.log("Actor switch:", state.using_hover_actor)  // Uncomment for debugging
+      console.log("Actor switch - using hover:", state.using_hover_actor, "distance check passed")
     }
     
     const avg_rot_rate = state.rotor_states.reduce((a, c) => a + c["power"], 0)/state.rotor_states.length

@@ -9,7 +9,7 @@
 
 // Include the checkpoint file you want to use for initialization
 // Replace this with the path to your specific checkpoint file
-#include "../actors/hoverActor_000000000300000.h"
+#include "../actors/hover_actors/hoverActor_000000000300000.h"
 
 template <typename T_ABLATION_SPEC>
 void run_with_checkpoint() {

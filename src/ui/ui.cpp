@@ -96,6 +96,7 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     std::vector<std::vector<CONFIG::ENVIRONMENT::State>> ongoing_trajectories;
     std::vector<TI> ongoing_drones;
     std::vector<TI> idle_drones;
+    std::vector<bool> trajectory_switched_to_hover; // Per-trajectory sticky switch tracking
     TI drone_id_counter = 0;
     using T = CONFIG::T;
     using ENVIRONMENT = typename parameters::environment<CONFIG::T, TI, CONFIG::ABLATION_SPEC>::ENVIRONMENT;
@@ -124,6 +125,7 @@ class websocket_session : public std::enable_shared_from_this<websocket_session>
     bool hover_actor_loaded = false;
     bool use_policy_switching = false;  // Enable/disable policy switching
     T switch_distance_threshold = T(0.3);  // Distance threshold for switching to hover policy
+    bool policy_switched_to_hover = false;  // For actor evaluation: sticky switch flag per episode
 
 public:
     explicit websocket_session(tcp::socket socket) : ws_(std::move(socket)), timer_(ws_.get_executor()) {
@@ -266,6 +268,9 @@ private:
         auto rng = rlt::random::default_engine(typename CONFIG::DEVICE::SPEC::RANDOM(), 10);
         
         while (!stop_evaluation) {
+            // Reset policy switch state for new episode
+            policy_switched_to_hover = false;
+            
             // Create environment state
             typename ENVIRONMENT::State state;
             rlt::initial_state(device, env, state);
@@ -290,14 +295,20 @@ private:
                 rlt::observe(device, env, state, observation, rng);
                 
                 // ============================================================================
-                // POLICY SWITCHING: Distance-Based Actor Selection
+                // POLICY SWITCHING: Distance-Based Actor Selection (STICKY - no going back)
                 // ============================================================================
                 if (use_policy_switching && hover_actor_loaded) {
-                    // Calculate distance to target using helper function
-                    T distance = learning_to_fly::policy_switching::calculate_distance_to_target<T>(state.position);
+                    // Check if we should switch to hover (only if not already switched)
+                    if (!policy_switched_to_hover) {
+                        T distance = learning_to_fly::policy_switching::calculate_distance_to_target<T>(state.position);
+                        if (distance < switch_distance_threshold) {
+                            policy_switched_to_hover = true;  // PERMANENT switch for this episode
+                            std::cout << "Episode " << episode_count << ": Switched to hover actor (distance: " << distance << "m)" << std::endl;
+                        }
+                    }
                     
-                    if (distance < switch_distance_threshold) {
-                        // CLOSE TO TARGET: Use hover actor with transformed observation
+                    if (policy_switched_to_hover) {
+                        // SWITCHED TO HOVER: Use hover actor for rest of episode
                         rlt::MatrixDynamic<rlt::matrix::Specification<T, TI, 1, ENVIRONMENT::OBSERVATION_DIM>> hover_observation;
                         rlt::malloc(device, hover_observation);
                         
@@ -314,7 +325,7 @@ private:
                         
                         rlt::free(device, hover_observation);
                     } else {
-                        // FAR FROM TARGET: Use navigation actor
+                        // NOT YET SWITCHED: Use navigation actor
                         rlt::evaluate(device, evaluation_actor, observation, action, actor_buffer);
                     }
                 } else {
@@ -327,8 +338,8 @@ private:
                 rlt::step(device, env, state, action, next_state, rng);
                 state = next_state;
                 
-                // Send state to frontend
-                ws_.write(net::buffer(rlt::rl::environments::multirotor::state_message(device, ui, state).dump()));
+                // Send state to frontend with actor switching info (use the permanent switch flag)
+                ws_.write(net::buffer(rlt::rl::environments::multirotor::state_message(device, ui, state, policy_switched_to_hover).dump()));
                 
                 rlt::free(device, observation);
                 
@@ -434,6 +445,7 @@ public:
             current_finished = ts_hover.finished;
         }
         while(new_trajectories > 0){
+            trajectory_switched_to_hover.push_back(false); // Initialize sticky switch flag for this trajectory
             std::sort(idle_drones.begin(), idle_drones.end(), std::greater<TI>());
             if(idle_drones.empty()){
                 TI drone_id = drone_id_counter++;
@@ -477,11 +489,31 @@ public:
             using UI = rlt::rl::environments::multirotor::UI<CONFIG::ENVIRONMENT>;
             UI ui;
             ui.id = std::to_string(drone_id);
-            ws_.write(net::buffer(rlt::rl::environments::multirotor::state_message(device, ui, state).dump()));
+            
+            // Calculate per-trajectory sticky policy switching
+            bool using_hover = false;
+            if (current_training_mode == "position-to-position") {
+                // Check distance and update sticky flag for THIS specific trajectory
+                if (ts_position_to_position.use_policy_switching && ts_position_to_position.hover_actor_loaded) {
+                    T dx = state.position[0] - learning_to_fly::constants::TARGET_POSITION_X<T>;
+                    T dy = state.position[1] - learning_to_fly::constants::TARGET_POSITION_Y<T>;
+                    T dz = state.position[2] - learning_to_fly::constants::TARGET_POSITION_Z<T>;
+                    T distance = rlt::math::sqrt(device.math, dx*dx + dy*dy + dz*dz);
+                    
+                    // Once we enter the switch zone, stay switched (sticky behavior)
+                    if (distance < ts_position_to_position.policy_switch_threshold) {
+                        trajectory_switched_to_hover[trajectory_i] = true;
+                    }
+                    using_hover = trajectory_switched_to_hover[trajectory_i];
+                }
+            }
+            
+            ws_.write(net::buffer(rlt::rl::environments::multirotor::state_message(device, ui, state, using_hover).dump()));
             if(ongoing_trajectories[trajectory_i].empty()){
                 idle_drones.push_back(drone_id);
                 ongoing_trajectories.erase(ongoing_trajectories.begin() + trajectory_i);
                 ongoing_drones.erase(ongoing_drones.begin() + trajectory_i);
+                trajectory_switched_to_hover.erase(trajectory_switched_to_hover.begin() + trajectory_i); // Remove the flag for this trajectory
                 trajectory_i--;
                 if(ongoing_trajectories.empty()){
                     break;

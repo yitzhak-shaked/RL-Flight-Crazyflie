@@ -8,7 +8,7 @@ Usage:
 Example:
     python scripts/test_policy_switching.py \
         --nav-actor actors/position_to_position_at_2m_actor_2400000.h5 \
-        --hover-actor actors/hoverActor_000000000300000.h5 \
+        --hover-actor actors/hover_actors/hoverActor_000000000300000.h5 \
         --threshold 0.3
 """
 
@@ -122,12 +122,12 @@ Examples:
   # Enable policy switching with default threshold (0.3m)
   python scripts/test_policy_switching.py \\
       --nav-actor actors/position_to_position_at_2m_actor_2400000.h5 \\
-      --hover-actor actors/hoverActor_000000000300000.h5
+      --hover-actor actors/hover_actors/hoverActor_000000000300000.h5
 
   # Enable with custom threshold
   python scripts/test_policy_switching.py \\
       --nav-actor actors/position_to_position_at_2m_actor_2400000.h5 \\
-      --hover-actor actors/hoverActor_000000000300000.h5 \\
+      --hover-actor actors/hover_actors/hoverActor_000000000300000.h5 \\
       --threshold 0.5
 
   # Disable policy switching
@@ -138,7 +138,7 @@ Examples:
     parser.add_argument("--host", default="localhost", help="UI server host (default: localhost)")
     parser.add_argument("--port", type=int, default=8080, help="UI server port (default: 8080)")
     parser.add_argument("--nav-actor", help="Path to navigation actor (e.g., actors/position_to_position_at_2m_actor_2400000.h5)")
-    parser.add_argument("--hover-actor", help="Path to hover actor (e.g., actors/hoverActor_000000000300000.h5)")
+    parser.add_argument("--hover-actor", help="Path to hover actor (e.g., actors/hover_actors/hoverActor_000000000300000.h5)")
     parser.add_argument("--threshold", type=float, default=0.3, help="Distance threshold for switching (default: 0.3m)")
     parser.add_argument("--disable", action="store_true", help="Disable policy switching")
     

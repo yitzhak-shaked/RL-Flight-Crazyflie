@@ -21,7 +21,7 @@ target_link_libraries(
         learning_to_fly
 )
 # Uncomment and modify the next line to enable checkpoint initialization
-# target_compile_definitions(training_headless PRIVATE ACTOR_CHECKPOINT_FILE="../actors/hoverActor_000000000300000.h")
+# target_compile_definitions(training_headless PRIVATE ACTOR_CHECKPOINT_FILE="../actors/hover_actors/hoverActor_000000000300000.h")
 
 add_executable(training_benchmark training.cpp)
 target_link_libraries(

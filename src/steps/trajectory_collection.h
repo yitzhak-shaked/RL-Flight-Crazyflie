@@ -34,6 +34,8 @@ namespace learning_to_fly {
                 rlt::sample_initial_state(ts.device, viz_env, viz_state, ts.rng_eval);
                 viz_in_progress = true;
                 last_viz_step = ts.step;
+                // Reset sticky policy switch flag for new episode
+                ts.current_trajectory_using_hover = false;
             }
             
             // Step through visualization episode (one step per training step to avoid blocking)
@@ -49,12 +51,19 @@ namespace learning_to_fly {
                 
                 rlt::observe(ts.device, viz_env, viz_state, obs, ts.rng_eval);
                 
-                // Apply policy switching if enabled
+                // Apply policy switching if enabled (with sticky behavior)
                 if (ts.use_policy_switching && ts.hover_actor_loaded) {
-                    // Calculate distance to target
-                    T distance = learning_to_fly::policy_switching::calculate_distance_to_target<T>(viz_state.position);
+                    // Calculate distance to target only if not already using hover
+                    if (!ts.current_trajectory_using_hover) {
+                        T distance = learning_to_fly::policy_switching::calculate_distance_to_target<T>(viz_state.position);
+                        
+                        if (distance < ts.policy_switch_threshold) {
+                            // Switch to hover actor - this is STICKY for the rest of the episode
+                            ts.current_trajectory_using_hover = true;
+                        }
+                    }
                     
-                    if (distance < ts.policy_switch_threshold) {
+                    if (ts.current_trajectory_using_hover) {
                         // Use hover actor with transformed observations
                         rlt::MatrixDynamic<rlt::matrix::Specification<T, TI, 1, CONFIG::ENVIRONMENT::OBSERVATION_DIM>> transformed_obs;
                         rlt::malloc(ts.device, transformed_obs);

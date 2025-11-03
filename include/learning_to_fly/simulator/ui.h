@@ -28,7 +28,7 @@ namespace rl_tools::rl::environments::multirotor {
         websocket::stream<tcp::socket> ws{ioc};
     };
     template <typename DEVICE, typename ENVIRONMENT>
-    nlohmann::json state_message(DEVICE& dev, rl::environments::multirotor::UI<ENVIRONMENT>& ui, const typename ENVIRONMENT::State& state){
+    nlohmann::json state_message(DEVICE& dev, rl::environments::multirotor::UI<ENVIRONMENT>& ui, const typename ENVIRONMENT::State& state, bool using_hover_actor = false){
         nlohmann::json message;
         message["channel"] = "setDroneState";
         message["data"]["id"] = ui.id;
@@ -46,11 +46,12 @@ namespace rl_tools::rl::environments::multirotor {
                 {"power", 0},
                 {"power", 0},
         };
+        message["data"]["data"]["using_hover_actor"] = using_hover_actor;
         return message;
     }
     template <typename DEVICE, typename ENVIRONMENT, typename ACTION_SPEC>
-    nlohmann::json state_message(DEVICE& dev, rl::environments::multirotor::UI<ENVIRONMENT>& ui, const typename ENVIRONMENT::State& state, const Matrix<ACTION_SPEC>& action){
-        auto message = state_message(dev, ui, state);
+    nlohmann::json state_message(DEVICE& dev, rl::environments::multirotor::UI<ENVIRONMENT>& ui, const typename ENVIRONMENT::State& state, const Matrix<ACTION_SPEC>& action, bool using_hover_actor = false){
+        auto message = state_message(dev, ui, state, using_hover_actor);
         message["data"]["data"]["rotor_states"] = std::vector<nlohmann::json>{
                 {{"power", get(action, 0, 0)}},
                 {{"power", get(action, 0, 1)}},

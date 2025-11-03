@@ -52,13 +52,13 @@ namespace learning_to_fly{
             // Path to actor checkpoint file for weight initialization
             // When empty (""), uses random weight initialization
             // When set to a valid .h file path, loads weights from that checkpoint
-            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hoverActor_000000000300000.h";
+            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hover_actors/hoverActor_000000000300000.h";
             // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/position_to_position_2m_good_agents/actor_000000002400000.h";
 
             // Policy switching configuration
             // Enable distance-based switching between navigation and hover actors during training
             static constexpr bool ENABLE_POLICY_SWITCHING = true;  // ENABLED for training with policy switching
-            static constexpr const char* HOVER_ACTOR_PATH = "actors/hoverActor_000000000300000.h5";
+            static constexpr const char* HOVER_ACTOR_PATH = "actors/hover_actors/hoverActor_000000000300000.h5";
             static constexpr T POLICY_SWITCH_THRESHOLD = T(0.3);  // Distance threshold in meters (increased for visibility)
 
             using ACTOR_CRITIC_CONFIG = ActorAndCritic<T, TI, ENVIRONMENT, TD3_PARAMETERS>;

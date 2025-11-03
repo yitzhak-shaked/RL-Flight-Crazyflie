@@ -25,5 +25,8 @@ namespace learning_to_fly{
         typename CONFIG::ACTOR_TYPE hover_actor;  // Pre-trained hover actor
         typename CONFIG::ACTOR_TYPE::template DoubleBuffer<1> hover_actor_buffer;
         bool hover_actor_loaded = false;
+        
+        // Track per-trajectory whether hover actor has been activated (sticky switching)
+        bool current_trajectory_using_hover = false;
     };
 }
