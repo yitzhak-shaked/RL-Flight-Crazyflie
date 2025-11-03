@@ -118,4 +118,19 @@ namespace rl_tools::rl::environments::multirotor::parameters::init{
             0,  // min rpm
             0,  // max rpm
     };
+    
+    // Precision hover training initialization - CRITICAL: Uses hardcoded 0.2m like original!
+    // The global INIT_POSITION define is 0.6m for position-to-position training
+    // For hover training, we MUST use 0.2m to train near the origin for precise hovering
+    template<typename T, typename TI, TI ACTION_DIM, typename REWARD_FUNCTION>
+    constexpr typename ParametersBase<T, TI, ACTION_DIM, REWARD_FUNCTION>::MDP::Initialization precision_hover = {
+            0.1, // guidance
+            0.2, // position - HARDCODED 0.2m like original successful hover actor (NOT the 0.6m global)
+            90.0/180.0 * 3.14,   // orientation - 90 degrees like original orientation_biggest_angle
+            1.0,   // linear velocity - same as original (global define value)
+            1.0,   // angular velocity - same as original (global define value)
+            true,// relative rpm
+            0,  // min rpm
+            0,  // max rpm
+    };
 }

@@ -9,8 +9,8 @@ target_link_libraries(
         learning_to_fly
         Boost::boost
 )
-# Enable checkpoint initialization for UI target
-target_compile_definitions(ui PRIVATE ACTOR_CHECKPOINT_FILE="../actors/hoverActor_000000000300000.h")
+# Enable checkpoint initialization for UI target with updated path
+target_compile_definitions(ui PRIVATE ACTOR_CHECKPOINT_FILE="../actors/hover_actors/hoverActor_000000000300000.h")
 endif()
 
 add_executable(training_headless training.cpp)

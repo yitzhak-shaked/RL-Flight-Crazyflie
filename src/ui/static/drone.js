@@ -12,7 +12,12 @@ class Drone{
     this.drone = new THREE.Group()
     // this.drone.add((new CoordinateSystem()).get())
     // this.drone.add((new CoordinateSystem(10 * model.mass, 0.1 * model.mass)).get())
-    const material = new THREE.MeshLambertMaterial({color: 0xAAAAAA})
+    
+    // Create materials for center body that can be changed for actor switching
+    this.navigatorMaterial = new THREE.MeshLambertMaterial({color: 0xAAAAAA}) // Gray for navigator
+    this.hoverMaterial = new THREE.MeshLambertMaterial({color: 0x00AAFF}) // Cyan/blue for hover
+    const material = this.navigatorMaterial
+    
     const clockwise_rotor_material = new THREE.MeshLambertMaterial({color: 0x00FF00})
     const counter_clockwise_rotor_material = new THREE.MeshLambertMaterial({color: 0xFF0000})
 
@@ -21,7 +26,8 @@ class Drone{
 
     const centerSize = model.mass / 2
     const centerForm = new THREE.BoxGeometry(centerSize, centerSize, centerSize*0.3)
-    const center = new THREE.Mesh( centerForm, material);
+    this.centerBody = new THREE.Mesh( centerForm, material);
+    const center = this.centerBody
     // this.drone.quaternion.set(Math.sqrt(0.5), Math.sqrt(0.5), 0,0) // ENUtoNED
     this.imuGroup = new THREE.Group()
     this.imuGroup.position.set(...model.imu.pose.position)
@@ -33,6 +39,7 @@ class Drone{
     this.drone.add(center)
 
     this.rotors = []
+    this.arms = []  // Store arm meshes for color switching
 
     const averageArmLength = model.rotors.map(rotor => norm(rotor.pose.position)).reduce((a, c) => a + c, 0) / model.rotors.length
     for(const [rotorIndex, rotor] of model.rotors.entries()){
@@ -78,6 +85,7 @@ class Drone{
       const arm = new THREE.Mesh(armForm, material)
       arm.position.set(0, armLength/2, 0)
       armGroup.add(arm)
+      this.arms.push(arm)  // Store arm mesh for color switching
 
       const rotorGroup = new THREE.Group()
       rotorGroup.position.set(...rotor.pose.position)
@@ -113,6 +121,18 @@ class Drone{
     const mat = Matrix4FromRotMat(state.pose.orientation)
     this.droneFrame.quaternion.setFromRotationMatrix(mat)
     this.droneFrame.position.set(state.pose.position[0] + this.origin[0], state.pose.position[1] + this.origin[1], state.pose.position[2] + this.origin[2])
+    
+    // Update drone body and arms color based on actor switching
+    if (state.using_hover_actor !== undefined) {
+      const material = state.using_hover_actor ? this.hoverMaterial : this.navigatorMaterial
+      this.centerBody.material = material
+      // Change all arm colors too for better visibility
+      this.arms.forEach(arm => {
+        arm.material = material
+      })
+      // console.log("Actor switch:", state.using_hover_actor)  // Uncomment for debugging
+    }
+    
     const avg_rot_rate = state.rotor_states.reduce((a, c) => a + c["power"], 0)/state.rotor_states.length
     state.rotor_states.map((rotorState, i) => {
       const forceArrow = this.rotors[i].forceArrow

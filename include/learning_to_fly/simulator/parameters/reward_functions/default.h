@@ -429,6 +429,25 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions {
             RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE, // RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE
             0.01, // action
     };
+    // Precision hover reward: Conservative increase from original working config
+    // Original had position=5, scale=0.5 and worked well
+    // We use position=10 (2x), scale=0.5 (same) for stronger but not extreme gradient
+    // The curriculum will further increase position weight during training
+    template<typename T>
+    constexpr Squared<T> reward_precision_hover = {
+            false, // non-negative
+            0.5, // scale - same as original successful hover actor
+            2, // constant
+            0, // termination penalty
+            10, // position - 2x original (5->10) for gradual improvement
+            5, // orientation - same as original
+            0.01, // linear_velocity - same as original
+            0, // angular_velocity - same as original
+            0, // linear_acceleration
+            0, // angular_acceleration
+            RL_TOOLS_RL_ENVIRONMENTS_MULTIROTOR_PARAMETERS_REWARD_FUNCTIONS_DEFAULT_ACTION_BASELINE,
+            0.01, // action - same as original
+    };
     template<typename T>
     constexpr Squared<T> reward_squared_position_only_torque_curriculum_target = {
             false, // non-negative

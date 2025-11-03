@@ -1,0 +1,263 @@
+=== TRAINING PARAMETERS SUMMARY ===
+Generated on: 2025-11-02 21:24:36 [Generated during training initialization]
+Run Name: 2025_11_02_21_24_36_d+o+a+r+h+c+f+w+e+_000
+
+=== TRAINING TYPE AND LOCATIONS ===
+Training Date: 2025_11_02_21_24_36
+Training Type: Full Multi-Component Training
+Starting Location: (0.0, 0.0, 0.0)
+Target Location: (0, 1.2, 0) [Hover training - target equals start]
+
+=== ABLATION STUDY FEATURES ===
+Feature String from Run Name: d+o+a+r+h+c+f+w+e+
+=== ACTUAL CONFIG VALUES ===
+Disturbance (d): Enabled
+Observation Noise (o): Enabled
+Asymmetric Actor-Critic (a): Enabled
+Rotor Delay (r): Enabled
+Action History (h): Enabled
+Curriculum Learning (c): Enabled
+Recalculate Rewards (f): Enabled
+Initial Reward Function (w): Enabled
+Exploration Noise Decay (e): Enabled
+Init Normal (init): Enabled
+
+=== ACTOR INITIALIZATION ===
+Starting Actor: Random weight initialization
+Initialization Type: Fresh training from scratch
+Starting Actor File: None (random weights)
+Checkpoint Path: Not applicable
+Base Seed: 0 (CONFIG::BASE_SEED)
+Warmup Steps (Critic): 15000 steps
+Warmup Steps (Actor): 30000 steps
+
+=== TRAINING STEPS ===
+Maximum Training Steps: 1500001
+Actor Checkpoint Interval: 100000 steps
+Actor Checkpoints Enabled: Yes
+Total Expected Checkpoints: 15
+
+=== REWARD FUNCTION PARAMETERS ===
+Reward Function Type: Initial Training Function (Squared)
+Selected Function: reward_squared_position_only_torque
+=== REWARD FUNCTION NUMERICAL VALUES ===
+Non-negative: false
+Scale: 0.5
+Constant: 2
+Termination Penalty: 0
+Position Weight: 10
+Orientation Weight: 5
+Linear Velocity Weight: 0.01
+Angular Velocity Weight: 0
+Linear Acceleration Weight: 0
+Angular Acceleration Weight: 0
+Action Baseline: 0.334
+Action Penalty: 0.01
+=== REWARD FUNCTION FORMULA ===
+Reward = -scale × weighted_cost + constant (if non-negative: max(result, 0))
+Weighted Cost = Σ(weight_i × cost_i²) for each state component
+
+Components:
+  - position_cost² = x² + y² + z²
+  - orientation_cost = 1 - w² (where w is quaternion real part)
+  - linear_velocity_cost² = vx² + vy² + vz²
+  - angular_velocity_cost² = ωx² + ωy² + ωz²
+  - linear_acceleration_cost² = Δv² / dt²
+  - angular_acceleration_cost² = Δω² / dt²
+  - action_cost² = Σ(action_i - baseline)²
+
+=== REWARD FUNCTION INTERPRETATION ===
+Higher position/orientation weights → stronger penalty for deviation from target
+Higher velocity weights → encourages slower, more controlled motion
+Higher acceleration weights → encourages smoother trajectories
+Higher action penalty → smoother control inputs, less aggressive maneuvers
+Scale factor → affects overall reward magnitude and learning sensitivity
+Constant → provides baseline reward, encourages survival
+Termination penalty → strong negative reward for crashes/failures
+
+=== ENVIRONMENT CONFIGURATION ===
+Simulation Type: Multirotor (Crazyflie 2.0)
+Physics Engine: Custom RL-Tools Multirotor Simulator
+Integration Method: RK4 (Runge-Kutta 4th order)
+Simulation Step Size (dt): 0.01 seconds
+Episode Length: 500 steps (5 seconds)
+Evaluation Episode Length: 1500 steps (15 seconds)
+Number of Parallel Environments: 1
+Action Dimension: 4 (motor commands)
+Observation Dimension: 146
+Observation Dimension Privileged: 28
+
+=== TERMINATION CONFIGURATION ===
+Termination Enabled: Yes
+Position Threshold: 1 meters (any axis)
+Linear Velocity Threshold: 1000 m/s
+Angular Velocity Threshold: 1000 rad/s
+Note: Episode terminates if any position, velocity, or angular velocity exceeds threshold
+
+=== ALGORITHM PARAMETERS (TD3) ===
+Algorithm: TD3 (Twin Delayed Deep Deterministic Policy Gradient)
+
+--- Batch Sizes ---
+Actor Batch Size: 256
+Critic Batch Size: 256
+
+--- Training & Update Intervals ---
+Training Interval: 10 steps
+Critic Training Interval: 10 steps (= 1 × TRAINING_INTERVAL)
+Actor Training Interval: 20 steps (= 2 × TRAINING_INTERVAL)
+Critic Target Update Interval: 10 steps
+Actor Target Update Interval: 20 steps
+
+--- Discount & Target Policy Smoothing ---
+Discount Factor (Gamma): 0.99
+Target Next Action Noise STD: 0.2
+Target Next Action Noise Clip: 0.5
+Ignore Termination Flag: No
+
+--- Replay Buffer & Exploration ---
+Replay Buffer Capacity: 1500001 transitions
+Off-Policy Runner Exploration Noise (Initial): 0.1
+
+--- Evaluation ---
+Evaluation Interval: 10000 steps
+Number of Evaluation Episodes: 1000
+
+=== NEURAL NETWORK ARCHITECTURE ===
+
+--- Actor Network ---
+Architecture: Sequential MLP
+Number of Layers: 3 (Input → Hidden1 → Hidden2 → Output)
+Hidden Layer Dimensions: 64 neurons per layer
+Activation Function: FAST_TANH
+Input Dimension: 146
+Output Dimension: 4 (motor commands)
+Output Activation: FAST_TANH (actions normalized to [-1, 1])
+
+--- Critic Network ---
+Architecture: Sequential MLP (Twin critics for TD3)
+Number of Layers: 3 (Input → Hidden1 → Hidden2 → Output)
+Hidden Layer Dimensions: 64 neurons per layer
+Activation Function: FAST_TANH
+Input Dimension: 28 (observations) + 4 (actions)
+Output Dimension: 1 (Q-value)
+Output Activation: IDENTITY (linear)
+
+=== OPTIMIZER PARAMETERS (ADAM) ===
+Optimizer: Adam
+Learning Rate (Alpha): 0.001
+Beta 1 (First Moment): 0.9
+Beta 2 (Second Moment): 0.999
+Epsilon: 1e-08
+Weight Decay: 0.0001
+Weight Decay (Input Layer): 0.0001
+Weight Decay (Output Layer): 0.0001
+Bias Learning Rate Factor: 1
+
+=== CURRICULUM LEARNING ===
+Curriculum Enabled: Yes
+Update Frequency: Every 100,000 steps
+
+--- Weight Multipliers per Update ---
+Action Weight: ×1.4 (capped at 1.0)
+Position Weight: ×1.1 (capped at 10.0 or 40.0 depending on reward function)
+Linear Velocity Weight: ×1.4 (capped at 1.0)
+
+Recalculate Rewards: Yes (replay buffer rewards updated)
+
+--- Exploration Noise Decay ---
+Decay Enabled: Yes
+Decay Start Step: 1,000,000
+Decay Frequency: Every 100,000 steps
+Decay Factor: 0.95 (multiplicative)
+Applied to: exploration_noise, target_next_action_noise_std, target_next_action_noise_clip
+
+=== ENVIRONMENT PHYSICS (CRAZYFLIE 2.0) ===
+Mass: 0.027 kg
+Gravity: [0, 0, -9.81] m/s²
+RPM Time Constant (T): 0.15 seconds
+Action Limits: [0, 21702] RPM
+Thrust Constant: 3.16e-10
+Torque Constant: 0.00596455
+Integration dt: 0.01 seconds
+Number of Rotors: 4
+
+=== OBSERVATION & ACTION NOISE ===
+Observation Noise Enabled: Yes
+Position Noise STD: 0.001
+Orientation Noise STD: 0.001
+Linear Velocity Noise STD: 0.002
+Angular Velocity Noise STD: 0.002
+Action Noise STD: 0 (on normalized action)
+
+=== DISTURBANCES ===
+Disturbances Enabled: Yes
+Random Force: Gaussian(μ=0, σ=0.0132435) N
+  (Formula: 0.027 × 9.81 / 20 × DISTURBANCE_FLAG)
+Random Torque: Gaussian(μ=0, σ=2.6487e-05) N⋅m
+  (Formula: 0.027 × 9.81 / 10000 × DISTURBANCE_FLAG)
+
+=== INITIALIZATION PARAMETERS ===
+Initialization Type: orientation_biggest_angle
+Guidance: 0.1
+Position Range: ±0.2 meters
+Orientation Range: ±1.57 radians (±89.9544°)
+Linear Velocity Range: ±1 m/s
+Angular Velocity Range: ±1 rad/s
+Relative RPM: Yes
+RPM Range: [0, 0]
+
+=== CHECKPOINTING CONFIGURATION ===
+Checkpoint Interval: Every 100000 steps
+Checkpoints Enabled: Yes
+File Formats Saved:
+  - HDF5 (.h5): For analysis and evaluation
+  - C++ Header (.h): For embedded deployment
+TensorBoard Logging: Enabled
+Learning Curve Data: Saved to HDF5 format
+Deterministic Evaluation: No
+Collect Episode Stats: No
+
+=== STATE & OBSERVATION SPACE ===
+State Features:
+  - Position (x, y, z)
+  - Orientation (rotation matrix or quaternion)
+  - Linear Velocity (vx, vy, vz)
+  - Angular Velocity (ωx, ωy, ωz)
+  - Rotor Speeds (4 values)
+  - Random Force (3 values)
+  - Action History (32 previous actions)
+
+Actor Observation Dimension: 146
+Critic Observation Dimension (Privileged): 28
+Asymmetric Actor-Critic: Yes (critic has access to privileged information)
+
+=== HYPERPARAMETER SUMMARY ===
+Total Training Steps: 1500001
+Expected Training Time: ~2083.33 hours of simulated time
+Samples per Episode: 500
+Total Samples Collected: ~1500001
+Replay Buffer Fill Ratio: 100%
+
+Gradient Updates:
+  Critic Updates: 150000
+  Actor Updates: 75000
+  Target Network Updates (Actor): 75000
+  Target Network Updates (Critic): 150000
+
+=== ADDITIONAL NOTES ===
+This summary was generated automatically during the training process.
+All parameters are extracted dynamically from compile-time configuration.
+Values shown are the actual values used in training, not defaults.
+
+Key Algorithmic Features:
+  - Twin Delayed DDPG with clipped double Q-learning
+  - Target policy smoothing with action noise
+  - Delayed policy updates (actor updated less frequently than critic)
+  - Experience replay with large buffer
+  - Optional curriculum learning with adaptive reward weights
+  - Optional exploration noise decay for convergence
+
+=== RELATED FILES ===
+Actor Checkpoints: ../actors/ (actor_*.h5, actor_*.h)
+TensorBoard Logs: ./data.tfevents
+Configuration Source: src/config/config.h, src/config/parameters.h, src/config/ablation.h

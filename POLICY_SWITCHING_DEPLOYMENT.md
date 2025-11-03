@@ -3,7 +3,7 @@
 ## Overview
 
 This guide explains how to deploy the policy switching system to your Crazyflie 2.1 drone. The system enables seamless switching between two trained actors:
-- **Navigation Actor**: For obstacle avoidance and reaching the target position
+- **Navigation Actor**: For obstacle avoidance and reaching the approximated target position
 - **Hover Actor**: For stable hovering at the target position
 
 The switching occurs automatically based on distance to target, with zero latency at the 500Hz control rate.
@@ -23,12 +23,12 @@ The switching occurs automatically based on distance to target, with zero latenc
 
 ### Trained Actors
 You need two trained actor checkpoint files:
-1. **Navigation Actor**: `actors/actor_XXXXXXXXX.h` (obstacle avoidance + target reaching)
-2. **Hover Actor**: `actors/hoverActor_XXXXXXXXX.h` (trained at origin for hovering)
+1. **Navigation Actor**: `actors/navigator_actor_XXXXXXXXX.h` (obstacle avoidance + target reaching)
+2. **Hover Actor**: `actors/hover_actor_XXXXXXXXX.h` (trained at origin for hovering)
 
 Example files already in this repository:
-- Navigation: `actors/actor_000000000300000.h`
-- Hover: `actors/hoverActor_000000000300000.h`
+- Navigation: `actors/navigator_actor_000000000300000.h`
+- Hover: `actors/hover_actor_000000000300000.h`
 
 ## System Architecture
 

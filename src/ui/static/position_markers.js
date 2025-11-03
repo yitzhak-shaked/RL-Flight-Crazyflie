@@ -20,6 +20,10 @@ class PositionMarkers {
             ]
             console.log('Loaded target position from server:', this.targetPosition)
             
+            // Load switch distance for policy switching
+            this.switchDistance = config.switchDistance || 0.3
+            console.log('Loaded switch distance from server:', this.switchDistance)
+            
             // Load obstacles
             this.obstacles = config.obstacles || []
             console.log('Loaded obstacles from server:', this.obstacles)
@@ -30,6 +34,7 @@ class PositionMarkers {
             console.error('Failed to fetch target position from server, using fallback:', error)
             // Fallback to a default position if server config fails
             this.targetPosition = [0.0, 0.0, 0.0]
+            this.switchDistance = 0.3
             this.obstacles = []
             this.createTargetPositionMarkers()
         }
@@ -72,48 +77,57 @@ class PositionMarkers {
             return
         }
 
-        // Target positions from the reward functions
         // BASIC TARGET position comes from server config (src/constants.h)
-        const targets = [
-            { pos: this.targetPosition, name: "BASIC TARGET", color: 0xff0000, radius: 0.2 },
-            { pos: [2.0, 0.0, 1.0], name: "AGGRESSIVE TARGET", color: 0xff6600, radius: 0.15 },
-            { pos: [0.5, 0.5, 0.8], name: "CONSERVATIVE TARGET", color: 0xff9999, radius: 0.3 }
-        ]
+        // The sphere now represents the ACTOR SWITCH DISTANCE, not success radius
+        const target = {
+            pos: this.targetPosition,
+            name: "TARGET",
+            color: 0xff0000,
+            switchDistance: this.switchDistance || 0.3
+        }
 
-        targets.forEach((target, index) => {
-            // Create a sphere for the target
-            const targetGeometry = new THREE.SphereGeometry(0.05, 16, 12)
-            const targetMaterial = new THREE.MeshBasicMaterial({ 
-                color: target.color,
-                transparent: true,
-                opacity: 0.8
-            })
-            const targetSphere = new THREE.Mesh(targetGeometry, targetMaterial)
-            targetSphere.position.set(target.pos[0], target.pos[1], target.pos[2])
-            this.markers.add(targetSphere)
-
-            // Create a wireframe sphere for the success radius
-            const radiusGeometry = new THREE.SphereGeometry(target.radius, 16, 12)
-            const radiusEdges = new THREE.EdgesGeometry(radiusGeometry)
-            const radiusMaterial = new THREE.LineBasicMaterial({ 
-                color: target.color,
-                transparent: true,
-                opacity: 0.3,
-                linewidth: 1
-            })
-            const radiusMarker = new THREE.LineSegments(radiusEdges, radiusMaterial)
-            radiusMarker.position.set(target.pos[0], target.pos[1], target.pos[2])
-            this.markers.add(radiusMarker)
-
-            // Add text label for target
-            this.addTextLabel(
-                target.name + `\\n(${target.pos[0]}, ${target.pos[1]}, ${target.pos[2]})`,
-                target.pos[0], 
-                target.pos[1] + 0.15, 
-                target.pos[2],
-                target.color
-            )
+        // Create a sphere for the target center
+        const targetGeometry = new THREE.SphereGeometry(0.05, 16, 12)
+        const targetMaterial = new THREE.MeshBasicMaterial({ 
+            color: target.color,
+            transparent: true,
+            opacity: 0.8
         })
+        const targetSphere = new THREE.Mesh(targetGeometry, targetMaterial)
+        targetSphere.position.set(target.pos[0], target.pos[1], target.pos[2])
+        this.markers.add(targetSphere)
+
+        // Create a wireframe sphere for the actor switch distance
+        // This is the distance at which the drone switches from navigator to hover actor
+        const switchGeometry = new THREE.SphereGeometry(target.switchDistance, 32, 24)
+        const switchEdges = new THREE.EdgesGeometry(switchGeometry)
+        const switchMaterial = new THREE.LineBasicMaterial({ 
+            color: 0x00AAFF, // Cyan/blue to match hover actor color
+            transparent: true,
+            opacity: 0.5,
+            linewidth: 2
+        })
+        const switchMarker = new THREE.LineSegments(switchEdges, switchMaterial)
+        switchMarker.position.set(target.pos[0], target.pos[1], target.pos[2])
+        this.markers.add(switchMarker)
+
+        // Add text label for target
+        this.addTextLabel(
+            target.name + `\\n(${target.pos[0].toFixed(1)}, ${target.pos[1].toFixed(1)}, ${target.pos[2].toFixed(1)})`,
+            target.pos[0], 
+            target.pos[1] + 0.15, 
+            target.pos[2],
+            target.color
+        )
+        
+        // Add text label for switch distance
+        this.addTextLabel(
+            `ACTOR SWITCH ZONE\\nRadius: ${target.switchDistance}m\\n(Hover actor inside, Navigator outside)`,
+            target.pos[0], 
+            target.pos[1] - target.switchDistance - 0.2, 
+            target.pos[2],
+            0x00AAFF
+        )
     }
 
     createObstacles() {
