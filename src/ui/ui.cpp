@@ -616,6 +616,21 @@ public:
                         #endif
                     }
                     
+                    // Load hover actor for policy switching if enabled
+                    if constexpr (POSITION_TO_POSITION_CONFIG::ENABLE_POLICY_SWITCHING) {
+                        std::string hover_actor_path = POSITION_TO_POSITION_CONFIG::HOVER_ACTOR_PATH;
+                        std::cout << "Loading hover actor for policy switching from: " << hover_actor_path << std::endl;
+                        if (learning_to_fly::steps::load_hover_actor(this->ts_position_to_position, hover_actor_path)) {
+                            this->ts_position_to_position.use_policy_switching = true;
+                            this->ts_position_to_position.policy_switch_threshold = T(POSITION_TO_POSITION_CONFIG::POLICY_SWITCH_THRESHOLD);
+                            std::cout << "Hover actor loaded successfully. Policy switching enabled with threshold: " 
+                                      << this->ts_position_to_position.policy_switch_threshold << "m" << std::endl;
+                        } else {
+                            std::cerr << "Failed to load hover actor - policy switching disabled" << std::endl;
+                            this->ts_position_to_position.use_policy_switching = false;
+                        }
+                    }
+                    
                     for(TI step_i=0; step_i < POSITION_TO_POSITION_CONFIG::STEP_LIMIT; step_i++){
                         learning_to_fly::step(this->ts_position_to_position);
                     }
