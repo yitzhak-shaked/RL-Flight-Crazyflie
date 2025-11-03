@@ -18,4 +18,13 @@ namespace rl_tools::rl::environments::multirotor::parameters::termination{
         1000,         // linear velocity
         1000 // angular velocity
     };
+    // Hover training termination: Start with 1m, curriculum will reduce to 20cm
+    // Loose initially to allow exploration, tightens to force precision hovering at origin
+    template<typename T, typename TI, TI ACTION_DIM, typename REWARD_FUNCTION>
+    constexpr typename rl_tools::rl::environments::multirotor::ParametersBase<T, TI, 4, REWARD_FUNCTION>::MDP::Termination precision_hover = {
+        true,           // enable
+        1.0,            // position - START at 1m, curriculum will reduce to 0.2m (20cm)
+        1000,           // linear velocity - very high, not constraining
+        1000            // angular velocity - very high, not constraining
+    };
 }
