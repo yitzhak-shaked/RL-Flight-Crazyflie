@@ -890,15 +890,17 @@ private:
             
             nlohmann::json actors_array = nlohmann::json::array();
             
-            // Scan ./actors directory (keep these on top)
+            // Scan ./actors directory recursively (keep these on top)
             std::filesystem::path actors_dir = "./actors";
             if(std::filesystem::exists(actors_dir) && std::filesystem::is_directory(actors_dir)){
-                for(const auto& entry : std::filesystem::directory_iterator(actors_dir)){
+                for(const auto& entry : std::filesystem::recursive_directory_iterator(actors_dir)){
                     if(entry.is_regular_file()){
                         std::string filename = entry.path().filename().string();
                         if(ends_with(filename, ".h5")){
                             nlohmann::json actor_obj;
-                            actor_obj["name"] = "actors/" + filename;
+                            // Get relative path from actors directory for display
+                            std::filesystem::path rel_path = std::filesystem::relative(entry.path(), "./actors");
+                            actor_obj["name"] = "actors/" + rel_path.string();
                             actor_obj["path"] = entry.path().string();
                             actors_array.push_back(actor_obj);
                         }
