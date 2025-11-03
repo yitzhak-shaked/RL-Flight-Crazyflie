@@ -37,7 +37,8 @@ namespace parameters{
             using ABLATION_SPEC = T_ABLATION_SPEC;
             static constexpr auto initial_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_squared_position_only_torque<T>;
             static constexpr auto target_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_squared_position_only_torque_curriculum_target<T>;
-            static constexpr auto position_to_position_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_position_to_position_smooth<T>;  // Changed to smooth reward function
+            static constexpr auto position_to_position_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_position_to_position_smooth<T>;
+            static constexpr auto precision_hover_reward_function = rl_tools::rl::environments::multirotor::parameters::reward_functions::reward_precision_hover<T>;  // High-precision hovering at origin
             
             // Select reward function based on ablation spec
             template<typename T_SPEC>
@@ -46,8 +47,8 @@ namespace parameters{
                     // Use smooth flight parameters for position-to-position training
                     return position_to_position_reward_function;
                 } else {
-                    // This will be used for hover training
-                    return T_SPEC::USE_INITIAL_REWARD_FUNCTION ? initial_reward_function : target_reward_function;
+                    // Hover training: use precision reward with higher position weight
+                    return precision_hover_reward_function;
                 }
             }
             
@@ -60,10 +61,36 @@ namespace parameters{
             using PARAMETERS_TYPE = rl_tools::rl::environments::multirotor::ParametersDisturbances<T, TI, rl_tools::rl::environments::multirotor::ParametersBase<T, TI, 4, REWARD_FUNCTION>>;
 
             static_assert(ABLATION_SPEC::INIT_NORMAL);
-            static constexpr auto init_params = ABLATION_SPEC::INIT_NORMAL ?
-                                                rl_tools::rl::environments::multirotor::parameters::init::orientation_biggest_angle<T, TI, 4, REWARD_FUNCTION>
-                                                                           :
-                                                rl_tools::rl::environments::multirotor::parameters::init::all_positions<T, TI, 4, REWARD_FUNCTION>;
+            // Select initialization based on training type
+            template<typename T_SPEC>
+            static constexpr auto get_init_params() {
+                if constexpr (std::is_same_v<T_SPEC, learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC>) {
+                    // Position-to-position uses bigger angle init for navigation training
+                    return rl_tools::rl::environments::multirotor::parameters::init::orientation_biggest_angle<T, TI, 4, REWARD_FUNCTION>;
+                } else {
+                    // Hover training uses precision_hover init: closer to origin for learning precise hovering
+                    return T_SPEC::INIT_NORMAL ?
+                        rl_tools::rl::environments::multirotor::parameters::init::precision_hover<T, TI, 4, REWARD_FUNCTION>
+                        :
+                        rl_tools::rl::environments::multirotor::parameters::init::all_positions<T, TI, 4, REWARD_FUNCTION>;
+                }
+            }
+            
+            static constexpr auto init_params = get_init_params<ABLATION_SPEC>();
+
+            // Select termination based on training type
+            template<typename T_SPEC>
+            static constexpr auto get_termination_params() {
+                if constexpr (std::is_same_v<T_SPEC, learning_to_fly::config::POSITION_TO_POSITION_ABLATION_SPEC>) {
+                    // Position-to-position uses standard termination with 3.5m threshold
+                    return rl_tools::rl::environments::multirotor::parameters::termination::fast_learning<T, TI, 4, REWARD_FUNCTION>;
+                } else {
+                    // Hover training uses curriculum termination starting at 1m, reducing to 20cm
+                    return rl_tools::rl::environments::multirotor::parameters::termination::precision_hover<T, TI, 4, REWARD_FUNCTION>;
+                }
+            }
+            
+            static constexpr auto termination_params = get_termination_params<ABLATION_SPEC>();
 
             static constexpr PARAMETERS_TYPE parameters = {
                     rl_tools::rl::environments::multirotor::parameters::dynamics::crazy_flie<T, TI, REWARD_FUNCTION>,
@@ -80,7 +107,7 @@ namespace parameters{
                             {   // Action noise
                                     0, // std of additive gaussian noise onto the normalized action (-1, 1)
                             },
-                            rl_tools::rl::environments::multirotor::parameters::termination::fast_learning<T, TI, 4, REWARD_FUNCTION>
+                            termination_params
                     },
                     typename PARAMETERS_TYPE::Disturbances{
                             typename PARAMETERS_TYPE::Disturbances::UnivariateGaussian{0, 0.027 * 9.81 / 20 * ABLATION_SPEC::DISTURBANCE}, // random_force;
