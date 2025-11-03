@@ -52,14 +52,16 @@ namespace learning_to_fly{
             // Path to actor checkpoint file for weight initialization
             // When empty (""), uses random weight initialization
             // When set to a valid .h file path, loads weights from that checkpoint
-            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hover_actors/hoverActor_000000000300000.h";
-            // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/position_to_position_2m_good_agents/actor_000000002400000.h";
+            // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "";  // Random init for NEW precision hover actor
+            // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hover_actors/hoverActor_000000000300000.h"; // Pre-trained hover actor
+            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hover_actors/new2/actor_000000001600000.h"; // Pre-trained hover actor
 
             // Policy switching configuration
             // Enable distance-based switching between navigation and hover actors during training
-            static constexpr bool ENABLE_POLICY_SWITCHING = true;  // ENABLED for training with policy switching
-            static constexpr const char* HOVER_ACTOR_PATH = "actors/hover_actors/hoverActor_000000000300000.h5";
-            static constexpr T POLICY_SWITCH_THRESHOLD = T(0.3);  // Distance threshold in meters (increased for visibility)
+            static constexpr bool ENABLE_POLICY_SWITCHING = true;
+            // static constexpr const char* HOVER_ACTOR_PATH = "actors/hover_actors/hoverActor_000000000300000.h5"; // Pre-trained hover actor for switching (.h5 for runtime loading)
+            static constexpr const char* HOVER_ACTOR_PATH = "actors/hover_actors/new2/actor_000000001600000.h5"; // Pre-trained hover actor for switching (.h5 for runtime loading)
+            static constexpr T POLICY_SWITCH_THRESHOLD = T(0.3);  // Distance threshold in meters
 
             using ACTOR_CRITIC_CONFIG = ActorAndCritic<T, TI, ENVIRONMENT, TD3_PARAMETERS>;
             static constexpr bool ASYMMETRIC_OBSERVATIONS = ACTOR_CRITIC_CONFIG::ASYMMETRIC_OBSERVATIONS;
@@ -75,19 +77,19 @@ namespace learning_to_fly{
             using ACTOR_CRITIC_TYPE = rlt::rl::algorithms::td3::ActorCritic<ACTOR_CRITIC_SPEC>;
 
 
-            static constexpr bool ACTOR_ENABLE_CHECKPOINTS = !BENCHMARK;  // Re-enabled for actor file generation
-            static constexpr TI ACTOR_CHECKPOINT_INTERVAL = 200000;
+            static constexpr bool ACTOR_ENABLE_CHECKPOINTS = !BENCHMARK;
+            static constexpr TI ACTOR_CHECKPOINT_INTERVAL = 100000;  // Checkpoint every 100k steps
             static constexpr bool DETERMINISTIC_EVALUATION = !BENCHMARK;
             static constexpr TI EVALUATION_INTERVAL = 10000;
             static constexpr TI NUM_EVALUATION_EPISODES = 1000;
             static constexpr bool COLLECT_EPISODE_STATS = false;
             static constexpr TI EPISODE_STATS_BUFFER_SIZE = 1000;
             static constexpr TI N_ENVIRONMENTS = 1;  // Cannot increase due to simulator constraints
-            static constexpr TI STEP_LIMIT = 2000001;
+            static constexpr TI STEP_LIMIT = 1600001;
 //            static constexpr TI REPLAY_BUFFER_LIMIT = 3000000;
             static constexpr TI REPLAY_BUFFER_CAP = STEP_LIMIT;
-            static constexpr TI ENVIRONMENT_STEP_LIMIT = 1500;  // Increased from 500 to 1500 - gives more time to reach 1m target smoothly
-            static constexpr TI ENVIRONMENT_STEP_LIMIT_EVALUATION = 1500;  // Same for evaluation
+            static constexpr TI ENVIRONMENT_STEP_LIMIT = 1000;  // Episode length for training
+            static constexpr TI ENVIRONMENT_STEP_LIMIT_EVALUATION = 2000;  // Longer for evaluation to show sustained hovering
             static constexpr TI BASE_SEED = 0;
             static constexpr bool CONSTRUCT_LOGGER = false;
             using OFF_POLICY_RUNNER_SPEC = rlt::rl::components::off_policy_runner::Specification<T, TI, ENVIRONMENT, N_ENVIRONMENTS, ASYMMETRIC_OBSERVATIONS, REPLAY_BUFFER_CAP, ENVIRONMENT_STEP_LIMIT, rlt::rl::components::off_policy_runner::DefaultParameters<T>, false, true, 1000>;
