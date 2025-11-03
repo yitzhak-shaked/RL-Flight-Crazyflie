@@ -23,19 +23,29 @@ namespace learning_to_fly {
                         }
                         {
                             T position_weight = env.parameters.mdp.reward.position;
-                            position_weight *= 1.1;  // REDUCED from 1.2 to make curriculum more gradual
-                            T position_weight_limit = 10;  // REDUCED from 40 to prevent overly harsh penalties
+                            position_weight *= 1.08;  // GENTLE increase: 8% every 100k steps (was 15%)
+                            T position_weight_limit = 20;  // Conservative limit (was 40)
                             position_weight = position_weight > position_weight_limit ? position_weight_limit : position_weight;
                             env.parameters.mdp.reward.position = position_weight;
                             rlt::add_scalar(ts.device, ts.device.logger, "reward_function/position_weight", position_weight);
                         }
                         {
                             T linear_velocity_weight = env.parameters.mdp.reward.linear_velocity;
-                            linear_velocity_weight *= 1.4;
-                            T linear_velocity_weight_limit = 1;
+                            linear_velocity_weight *= 1.2;  // Slower increase (was 1.4)
+                            T linear_velocity_weight_limit = 0.5;  // Lower limit (was 1.0)
                             linear_velocity_weight = linear_velocity_weight > linear_velocity_weight_limit ? linear_velocity_weight_limit : linear_velocity_weight;
                             env.parameters.mdp.reward.linear_velocity = linear_velocity_weight;
                             rlt::add_scalar(ts.device, ts.device.logger, "reward_function/linear_velocity_weight", linear_velocity_weight);
+                        }
+                        {
+                            // HOVER TRAINING CURRICULUM: Gradually tighten termination threshold from 1m to 20cm
+                            // More conservative than before (was 10cm which was too tight)
+                            T position_threshold = env.parameters.mdp.termination.position_threshold;
+                            position_threshold *= 0.96;  // GENTLER decrease: 4% every 100k steps (was 7%)
+                            T position_threshold_limit = 0.2;  // More forgiving: 20cm final target (was 10cm)
+                            position_threshold = position_threshold < position_threshold_limit ? position_threshold_limit : position_threshold;
+                            env.parameters.mdp.termination.position_threshold = position_threshold;
+                            rlt::add_scalar(ts.device, ts.device.logger, "termination/position_threshold", position_threshold);
                         }
                     }
                     if constexpr(CONFIG::ABLATION_SPEC::RECALCULATE_REWARDS == true){
