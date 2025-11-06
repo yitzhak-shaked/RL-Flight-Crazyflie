@@ -17,9 +17,18 @@ The switching occurs automatically based on distance to target, with zero latenc
 - USB cable for the dongle
 
 ### Required Software
-- Docker (for firmware build)
+
+**Option A: Native Build (Recommended)**
+- ARM GCC toolchain: `sudo apt install gcc-arm-none-eabi`
+- Python 3.x with cfloader installed
+- Git submodules initialized: `git submodule update --init --recursive`
+
+**Option B: Docker Build**
+- Docker installed and running
 - WSL (if using Windows for USB access)
 - Python 3.x with cfloader installed
+
+**Note**: Native build is faster, easier to debug, and doesn't require Docker. Docker is optional.
 
 ### Trained Actors
 You need two trained actor checkpoint files:
@@ -60,79 +69,158 @@ Distance Calculation: sqrt((x-0.0)² + (y-1.2)² + (z-0.0)²)
 
 ### 1. Prepare Actor Files
 
-Create a deployment directory with both actors:
+**CRITICAL DISCOVERY**: The actor checkpoint files have namespace collisions that must be resolved before building.
+
+#### For Policy Switching (Dual Actor):
+
+Both actors use the same namespace `rl_tools::checkpoint::actor` by default, which causes C++ redefinition errors. The hover actor must be renamed to use a different namespace:
+
 ```bash
-mkdir -p deployment_actors
-cp actors/actor_000000000300000.h deployment_actors/actor.h
-cp actors/hoverActor_000000000300000.h deployment_actors/hover_actor.h
+# Copy the actors
+cp actors/position_to_position_2m_good_agents/actor_000000002400000.h controller/data/actor.h
+
+# Copy and fix hover actor namespace collision
+cp actors/hover_actors/new1/hover_actor_000000001500000.h controller/data/hover_actor.h
+
+# Fix namespace collisions in hover_actor.h
+cd controller/data
+sed -i 's/namespace rl_tools::checkpoint::actor/namespace rl_tools::checkpoint::hover_actor/g' hover_actor.h
+sed -i 's/^namespace rl_tools::checkpoint::observation/namespace rl_tools::checkpoint::hover_actor::observation/g' hover_actor.h
+sed -i 's/^namespace rl_tools::checkpoint::action/namespace rl_tools::checkpoint::hover_actor::action/g' hover_actor.h
+sed -i 's/^namespace rl_tools::checkpoint::meta/namespace rl_tools::checkpoint::hover_actor::meta/g' hover_actor.h
 ```
 
-**Important Naming Convention:**
-- Navigation actor MUST be named `actor.h`
-- Hover actor MUST be named `hover_actor.h`
+**Why This is Necessary**: RLtools generates checkpoint files with identical namespaces. When both headers are included in the same translation unit (for policy switching), C++ throws redefinition errors for all symbols. The sed commands rename the hover actor's namespace hierarchy to `hover_actor` to avoid collisions.
 
-### 2. Build Firmware with Policy Switching
+#### For Single Actor (Testing):
 
-The Docker build process embeds both actors into the firmware:
+For testing individual actors without policy switching:
+
+```bash
+# Test navigation actor only
+cp actors/position_to_position_2m_good_agents/actor_000000002400000.h controller/data/actor.h
+
+# OR test hover actor only
+cp actors/hover_actors/new1/hover_actor_000000001500000.h controller/data/actor.h
+```
+
+**Important**: No namespace fixes needed for single-actor builds since only one header is included.
+
+### 2. Build Firmware
+
+You can build firmware either natively (recommended) or using Docker.
+
+#### Option A: Native Build (Recommended)
+
+**Advantages**:
+- Faster compilation (~1-2 minutes vs 2-5 minutes)
+- Easier debugging (direct access to build logs)
+- No Docker overhead
+- Simpler workflow
+
+**Prerequisites**:
+```bash
+# Install ARM toolchain (one-time)
+sudo apt install gcc-arm-none-eabi
+
+# Initialize Crazyflie firmware submodule (one-time)
+cd controller/external
+git submodule update --init --recursive
+cd ../..
+```
+
+**Build Commands**:
+
+```bash
+cd controller
+
+# Configure for Crazyflie 2.1
+cd external/crazyflie_firmware
+make cf2_defconfig
+cd ../..
+
+# Build with policy switching
+make clean
+make ENABLE_POLICY_SWITCHING=1 -j8
+
+# OR build without policy switching (single actor)
+make clean
+make -j8
+```
+
+**Expected Output** (with policy switching):
+```
+Flash |  471988/1032192 (46%),  560204 free | text: 465268, data: 6720, ccmdata: 0
+RAM   |   84996/131072  (65%),   46076 free | bss: 78276, data: 6720
+CCM   |   62020/65536   (95%),    3516 free | ccmbss: 62020, ccmdata: 0
+```
+
+Binary will be at: `controller/build/cf2.bin`
+
+#### Option B: Docker Build
+
+**When to Use**: If you don't want to install ARM toolchain or prefer containerized builds.
+
+**Build Commands**:
 
 ```bash
 # Build firmware with policy switching enabled
 docker run --rm -it \
-  -v $(pwd)/deployment_actors/actor.h:/controller/data/actor.h \
-  -v $(pwd)/deployment_actors/hover_actor.h:/controller/data/hover_actor.h \
+  -v $(pwd)/controller/data/actor.h:/controller/data/actor.h \
+  -v $(pwd)/controller/data/hover_actor.h:/controller/data/hover_actor.h \
   -v $(pwd)/build_firmware:/output \
   -e ENABLE_POLICY_SWITCHING=1 \
   arpllab/learning_to_fly_build_firmware
 ```
 
 This will:
-1. Mount both actor checkpoint files into the container at `/controller/data/`
-2. Set `ENABLE_POLICY_SWITCHING=1` which gets passed to the Makefile as `-DENABLE_POLICY_SWITCHING`
-3. Compile firmware with dual-actor support (both actors embedded)
-4. Output `cf2.bin` to `build_firmware/` directory (mapped from `/output` in container)
+1. Mount both actor checkpoint files (with namespace fixes already applied)
+2. Set `ENABLE_POLICY_SWITCHING=1` 
+3. Compile firmware with dual-actor support
+4. Output `cf2.bin` to `build_firmware/` directory
 
 **Build Time**: ~2-5 minutes depending on your system
 
-### 3. Connect Crazyflie
+**Note**: The Docker image uses the same build system as native builds, just in a container.
 
-#### On WSL (Windows):
-```bash
-# Attach USB dongle to WSL
-usbipd attach --busid 1-8 --wsl
+Binary will be at: `build_firmware/cf2.bin`
 
-# Verify connection
-lsusb | grep Crazyradio
-```
+### 3. Flash Firmware
 
-#### On Linux:
-```bash
-# USB dongle should be automatically detected
-lsusb | grep Crazyradio
-```
+**Connect Crazyflie**: Power on your Crazyflie 2.1 and ensure it's in range of your Crazyradio PA dongle.
 
-### 4. Flash Firmware
-
-Flash the compiled firmware to your Crazyflie:
+**Flash Command**:
 
 ```bash
-sudo cfloader flash build_firmware/cf2.bin stm32-fw -w radio://0/80/2M
+# For Native Build
+cd /home/shaked/Projects/RL-Flight-Crazyflie/controller
+sudo cfloader flash build/cf2.bin stm32-fw -w radio://0/80/2M/E7E7E7E7E7
+
+# For Docker Build
+cd /home/shaked/Projects/RL-Flight-Crazyflie
+sudo cfloader flash build_firmware/cf2.bin stm32-fw -w radio://0/80/2M/E7E7E7E7E7
 ```
 
-**Expected Output:**
+**Important Notes**:
+- Replace `radio://0/80/2M/E7E7E7E7E7` with your Crazyflie's URI
+- The `sudo` is required for USB access to Crazyradio
+- Flashing takes ~10-15 seconds
+- The Crazyflie will reboot automatically after flashing completes
+
+**Flash Usage**: With dual-actor policy switching enabled, flash usage is approximately 46% (472KB/1032KB). This leaves sufficient space for future features. Single-actor builds use ~40% flash.
+
+**Expected Output**:
 ```
-Restart the Crazyflie you want to bootload in the next
- 10 seconds ...
+Reset to bootloader mode ...
+Restart the Crazyflie you want to bootload in the next 10 seconds ...
 Connected to bootloader on Crazyflie 2.1 (version=0x10)
 Target info: nrf51 (0xFE)
 Flash pages: 232 | Page size: 1024 | Buffer pages: 1 | Start page: 88
-144 KBytes of flash available for firmware image.
-Flashing 1 of 1 to stm32 (fw): 142826 bytes (140 pages) ..........
-Flashing done!
+Flashing 1 of 1 to stm32 (fw): 471988 bytes
+[========================================] 100%
 ```
 
-**Flashing Time**: ~30 seconds
-
-### 5. Configure Policy Switching Parameters
+### 4. Configure Policy Switching Parameters
 
 After flashing, configure the policy switching behavior via parameters.
 
@@ -143,7 +231,7 @@ After flashing, configure the policy switching behavior via parameters.
    sudo venv/bin/cfclient
    ```
 
-2. Connect to your Crazyflie (radio://0/80/2M)
+2. Connect to your Crazyflie (radio://0/80/2M/E7E7E7E7E7)
 
 3. Navigate to **Parameters** tab
 
@@ -182,34 +270,65 @@ with SyncCrazyflie(URI, cf=Crazyflie(rw_cache='./cache')) as scf:
 - **Have cutoff**: Keep hand near emergency stop button
 - **Test indoors**: Use the Flow Deck for position estimation
 
-### Test Procedure
+### Actor Validation (Critical First Step)
 
-#### 1. Basic Hover Test (Single Actor)
-First verify the navigation actor works alone:
+**IMPORTANT**: Always test individual actors before testing policy switching! This validates each actor works correctly in deployment.
+
+#### 1. Test Hover Actor Alone
 ```bash
-cd scripts
-python trigger.py --mode hover_learned --height 0.3
+cd controller
+cp ../actors/hover_actors/new1/hover_actor_000000001500000.h data/actor.h
+make clean && make -j8  # Single-actor build
+sudo cfloader flash build/cf2.bin stm32-fw -w radio://0/80/2M/E7E7E7E7E7
 ```
 
-This should:
-- Takeoff smoothly
-- Navigate to (0.0, 1.2, 0.3)
-- Hover stably
-- **Expected**: Slight drift without hover actor
+**Expected Behavior**: 
+- Drone takes off and reaches target position
+- **Stable hovering** with minimal drift
+- Holds position at (0.0, 1.2, 0.3)
 
-#### 2. Policy Switching Test
-Use the dedicated policy switching mode:
+**Status**: ✅ **VALIDATED** - hover actor from `actors/hover_actors/new1/hover_actor_000000001500000.h` works correctly
+
+#### 2. Test Navigation Actor Alone
 ```bash
-# New policy_switching mode (recommended)
-python scripts/trigger.py --mode policy_switching --height 0.3 --ps-threshold 0.5
+cd controller
+cp ../actors/position_to_position_2m_good_agents/actor_000000002400000.h data/actor.h
+make clean && make -j8  # Single-actor build
+sudo cfloader flash build/cf2.bin stm32-fw -w radio://0/80/2M/E7E7E7E7E7
 ```
 
-**Alternative** (manual parameter setup):
+**Expected Behavior**:
+- Drone navigates toward target (0.0, 1.2, 0.3)
+- Reaches target within ~0.5m
+- Slight drift acceptable (hover actor handles final positioning)
+
+**Status**: ⚠️ **NEEDS VALIDATION** - last tested checkpoint showed uncontrollable left drift. May need different checkpoint or retraining.
+
+### Policy Switching Test (After Actor Validation)
+
+Once BOTH actors are validated, test policy switching:
+
 ```bash
-# Enable via cfclient or configure_policy_switching.py first
+# Build dual-actor firmware (with namespace fix)
+cd controller/data
+# Apply namespace fix
+sed -i 's/namespace rl_tools::checkpoint::actor/namespace rl_tools::checkpoint::hover_actor/g' hover_actor.h
+sed -i 's/^namespace rl_tools::checkpoint::observation/namespace rl_tools::checkpoint::hover_actor::observation/g' hover_actor.h
+sed -i 's/^namespace rl_tools::checkpoint::action/namespace rl_tools::checkpoint::hover_actor::action/g' hover_actor.h
+sed -i 's/^namespace rl_tools::checkpoint::meta/namespace rl_tools::checkpoint::hover_actor::meta/g' hover_actor.h
+
+cd ../..
+make clean && make ENABLE_POLICY_SWITCHING=1 -j8
+sudo cfloader flash build/cf2.bin stm32-fw -w radio://0/80/2M/E7E7E7E7E7
+```
+
+Then configure and test:
+```bash
+# Configure policy switching
 python scripts/configure_policy_switching.py --enable --threshold 0.5
-# Then use any learned policy mode
-python scripts/trigger.py --mode takeoff_and_switch --height 0.3
+
+# Trigger flight
+python scripts/trigger.py --mode policy_switching --height 0.3 --ps-threshold 0.5
 ```
 
 This should:
@@ -220,7 +339,7 @@ This should:
 - Hover stably with minimal drift at (0.0, 1.2, 0.3)
 - **Expected**: Smooth transition, no oscillation at threshold
 
-#### 3. Monitor Switching Events
+### Monitor Switching Events
 
 Use cfclient logging to observe switching:
 
@@ -277,6 +396,68 @@ To change it:
 **Note**: Changing target requires retraining hover actor at new position!
 
 ## Troubleshooting
+
+### Issue: Build fails with namespace collision / redefinition errors
+**Symptoms**: C++ compilation errors like:
+```
+error: redefinition of 'rl_tools::checkpoint::actor::layer_1::weights'
+error: redefinition of 'rl_tools::checkpoint::observation::container'
+```
+
+**Root Cause**: Both `actor.h` and `hover_actor.h` use the same namespace `rl_tools::checkpoint::actor`, causing C++ redefinition errors when both are included in the same translation unit.
+
+**Solution**: Apply namespace fixes to `hover_actor.h` BEFORE building (see Step 2 above). The sed commands rename all hover actor namespaces to avoid collisions.
+
+**Verification**: After applying sed commands, check:
+```bash
+grep "namespace rl_tools::checkpoint::hover_actor" controller/data/hover_actor.h
+# Should show the renamed namespaces
+```
+
+### Issue: Navigation actor causes uncontrollable drift
+**Symptoms**: 
+- Drone drifts continuously in one direction (e.g., left)
+- Drone doesn't stabilize or stop drifting
+- Drone overshoots target by large margin
+
+**Root Cause**: Navigation actor may have training/deployment mismatch or was not properly validated.
+
+**Diagnosis**: Test navigation actor independently (single-actor build):
+```bash
+# Build with only navigation actor
+cd controller
+cp ../actors/position_to_position_2m_good_agents/actor_000000002400000.h data/actor.h
+make clean && make -j8  # WITHOUT ENABLE_POLICY_SWITCHING=1
+
+# Flash and test
+sudo cfloader flash build/cf2.bin stm32-fw -w radio://0/80/2M/E7E7E7E7E7
+```
+
+**Solutions**:
+- Try different checkpoint from navigation actor training
+- Verify training environment matches deployment (Flow Deck, reference frames, observation scaling)
+- Retrain navigation actor with real hardware data
+- Check actor export process for errors
+
+**Known Working Actors**:
+- Hover actor from `actors/hover_actors/new1/hover_actor_000000001500000.h` - **VALIDATED** ✅
+- Navigation actor needs verification - last tested checkpoint showed drift issues ⚠️
+
+### Issue: Hover actor drift or instability
+**Symptoms**: Drone doesn't hold position when hover actor is active
+
+**Diagnosis**: Test hover actor independently (single-actor build):
+```bash
+# Build with only hover actor
+cd controller
+cp ../actors/hover_actors/new1/hover_actor_000000001500000.h data/actor.h
+make clean && make -j8  # WITHOUT ENABLE_POLICY_SWITCHING=1
+
+# Flash and test
+sudo cfloader flash build/cf2.bin stm32-fw -w radio://0/80/2M/E7E7E7E7E7
+```
+
+**Note**: Current hover actor checkpoint has been validated and works correctly for stable hovering.
 
 ### Issue: Firmware won't flash
 **Symptoms**: `cfloader` can't connect to bootloader
@@ -501,29 +682,108 @@ For issues:
 
 ## Summary
 
-**Deployment Checklist:**
-- [ ] Two trained actors ready (actor.h, hover_actor.h)
-- [ ] Docker firmware build completed
-- [ ] Firmware flashed to Crazyflie
-- [ ] Policy switching enabled (`ps_enable=1`)
-- [ ] Threshold configured (`ps_thresh=0.5`)
-- [ ] Basic hover test passed
-- [ ] Policy switching test passed
-- [ ] Logging verified (actor transitions visible)
-- [ ] Flight testing complete
+This guide covers deploying policy switching with two key discoveries from real-world testing:
 
-**Expected Behavior:**
-- Smooth takeoff with navigation actor
-- Automatic switch to hover actor at 0.5m from target
-- Stable hovering at target position
-- No oscillation or instability
-- Clean actor transitions without jumps
+### Key Discoveries
 
-**Key Advantages:**
-- Zero latency switching (500Hz)
-- No code modification needed for actor updates
-- Runtime tunable threshold
-- Full logging and debugging support
-- Backward compatible (can disable switching)
+1. **Native Build is Recommended**: 
+   - Docker is completely optional
+   - Native build with ARM toolchain is faster (1-2 min vs 2-5 min)
+   - Easier debugging and iteration
+   - Uses same Crazyflie firmware build system
 
-Enjoy your policy-switching Crazyflie! 🚁
+2. **Namespace Collision Must Be Fixed**:
+   - RLtools generates all checkpoints with `rl_tools::checkpoint::actor` namespace
+   - C++ redefinition errors occur when including both actors
+   - Solution: sed commands to rename hover_actor namespaces (documented in Step 2)
+   - This is a one-time fix before each build
+
+3. **Actor Validation is Critical**:
+   - ALWAYS test each actor individually before testing policy switching
+   - Build single-actor firmware and verify behavior
+   - Current status:
+     - Hover actor: ✅ VALIDATED - stable hovering works
+     - Navigation actor: ⚠️ NEEDS VALIDATION - last checkpoint showed drift issues
+   - Single-actor testing isolates actor problems from policy switching logic
+
+### Build Options Comparison
+
+| Feature | Native Build | Docker Build |
+|---------|-------------|--------------|
+| Speed | 1-2 minutes | 2-5 minutes |
+| Setup | ARM toolchain install | Docker install |
+| Debugging | Direct access | Container isolation |
+| Flexibility | Full control | Scripted |
+| **Recommendation** | ✅ Use this | Optional alternative |
+
+### Deployment Checklist
+
+**Prerequisites:**
+- [ ] Two trained actors ready (actor.h from navigation, hover_actor.h from hover training)
+- [ ] ARM toolchain installed (for native) OR Docker (for container build)
+- [ ] Crazyflie firmware submodule initialized
+- [ ] Crazyradio PA dongle connected
+- [ ] Python environment with cfloader available
+
+**Build Process:**
+- [ ] Namespace collision fix applied to hover_actor.h (sed commands)
+- [ ] Firmware built with ENABLE_POLICY_SWITCHING=1
+- [ ] Flash usage verified (~46% expected with dual-actor)
+- [ ] Firmware flashed successfully to Crazyflie
+
+**Actor Validation (CRITICAL):**
+- [ ] Hover actor tested individually - stable hovering confirmed
+- [ ] Navigation actor tested individually - proper navigation confirmed
+- [ ] If either actor fails, DO NOT proceed to policy switching
+
+**Policy Switching Configuration:**
+- [ ] Parameters configured (ps_enable=1, ps_thresh=0.5)
+- [ ] Flight test performed with monitoring
+- [ ] Switching behavior verified (nav→hover transition at threshold)
+- [ ] Performance acceptable (smooth navigation, stable hover, no oscillation)
+
+### Common Issues Quick Reference
+
+| Symptom | Cause | Solution |
+|---------|-------|----------|
+| Build fails with redefinition errors | Namespace collision | Apply sed commands to hover_actor.h |
+| Drone drifts uncontrollably | Bad navigation actor | Test actor individually, try different checkpoint |
+| Parameters ps_enable/ps_thresh missing | Built without flag | Rebuild with ENABLE_POLICY_SWITCHING=1 |
+| Flash usage > 50% | Both actors too large | Use smaller network or optimize checkpoints |
+| Oscillation at threshold | No hysteresis | Increase ps_thresh or add hysteresis logic |
+
+### Next Steps
+
+After successful deployment:
+
+1. **Collect Flight Data**: Use cfclient logging to analyze performance
+2. **Fine-tune Threshold**: Adjust `ps_thresh` based on observed behavior
+3. **Validate Navigation Actor**: Find or retrain navigation actor that works in deployment
+4. **Add Hysteresis**: Prevent rapid switching at threshold boundary
+5. **Multiple Targets**: Extend to waypoint navigation with switching
+
+## References
+
+- Training Configuration: `src/config/config.h`
+- Policy Switching Logic: `controller/rl_tools_adapter.cpp`
+- Firmware Controller: `controller/rl_tools_controller.c`
+- Build System: `controller/Makefile`
+- Main README: `README.MD`
+- Implementation Details: `IMPLEMENTATION_SUMMARY.md`
+- Quick Reference: `QUICK_REFERENCE.md`
+
+## Support
+
+For issues:
+1. Check this guide's Troubleshooting section (especially namespace collision and actor validation)
+2. Test individual actors first (single-actor builds)
+3. Review firmware logs via cfclient
+4. Verify training configuration matches deployment
+5. Check Flash/RAM usage in build output
+
+---
+
+**Enjoy your policy-switching Crazyflie!** 🚁
+
+*This deployment guide reflects real-world testing and troubleshooting. Always validate individual actors before testing policy switching.*
+
