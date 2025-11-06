@@ -4,6 +4,4 @@
 /build
 /logs
 /.idea
-/**/*.h5
 *.bin
-actors/actor_000000000300000.h

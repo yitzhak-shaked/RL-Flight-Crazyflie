@@ -11,9 +11,9 @@ usbipd attach --busid 1-8 --wsl
 lsusb
 
 :~$ Command Sequence For Running cfclient:
-cd Projects/crazyflie-clients-python/
-source venv/bin/activate
-sudo venv/bin/cfclient
+cd ~/Projects/crazyflie-clients-python/
+source /home/shaked/Projects/crazyflie-clients-python/venv/bin/activate
+sudo /home/shaked/Projects/crazyflie-clients-python/venv/bin/cfclient
 
 /******************************************************************************
  * Model Deployment

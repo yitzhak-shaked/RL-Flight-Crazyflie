@@ -84,7 +84,7 @@ namespace learning_to_fly{
             static constexpr TI NUM_EVALUATION_EPISODES = 1000;
             static constexpr bool COLLECT_EPISODE_STATS = false;
             static constexpr TI EPISODE_STATS_BUFFER_SIZE = 1000;
-            static constexpr TI N_ENVIRONMENTS = 1;  // Cannot increase due to simulator constraints
+            static constexpr TI N_ENVIRONMENTS = 1;  // Cannot increase due to simu            cd /home/shaked/Projects/RL-Flight-Crazyflie && ./build_firmware_with_policy_switching.sh actors/position_to_position_2m_good_agents/actor_000000002400000.h actors/hover_actors/new2/actor_000000001600000.hlator constraints
             static constexpr TI STEP_LIMIT = 1600001;
 //            static constexpr TI REPLAY_BUFFER_LIMIT = 3000000;
             static constexpr TI REPLAY_BUFFER_CAP = STEP_LIMIT;
