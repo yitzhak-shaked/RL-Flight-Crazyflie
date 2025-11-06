@@ -52,15 +52,15 @@ namespace learning_to_fly{
             // Path to actor checkpoint file for weight initialization
             // When empty (""), uses random weight initialization
             // When set to a valid .h file path, loads weights from that checkpoint
-            // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "";  // Random init for NEW precision hover actor
-            // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hover_actors/hoverActor_000000000300000.h"; // Pre-trained hover actor
-            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hover_actors/new2/actor_000000001600000.h"; // Pre-trained hover actor
+            // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "";  // Random init for training from scratch
+            // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hover_actors/hoverActor_000000000300000.h"; // WRONG for position-to-position! This is a HOVER actor
+            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/position_to_position_2m_good_agents/actor_000000002400000.h"; // Pre-trained NAVIGATION actor for position-to-position training
 
             // Policy switching configuration
             // Enable distance-based switching between navigation and hover actors during training
             static constexpr bool ENABLE_POLICY_SWITCHING = true;
-            // static constexpr const char* HOVER_ACTOR_PATH = "actors/hover_actors/hoverActor_000000000300000.h5"; // Pre-trained hover actor for switching (.h5 for runtime loading)
-            static constexpr const char* HOVER_ACTOR_PATH = "actors/hover_actors/new2/actor_000000001600000.h5"; // Pre-trained hover actor for switching (.h5 for runtime loading)
+            static constexpr const char* HOVER_ACTOR_PATH = "actors/hover_actors/hoverActor_000000000300000.h5"; // Pre-trained hover actor for switching (.h5 for runtime loading)
+            // static constexpr const char* HOVER_ACTOR_PATH = "actors/hover_actors/new2/actor_000000001600000.h5"; // INCOMPATIBLE: Missing gradient dataset
             static constexpr T POLICY_SWITCH_THRESHOLD = T(0.3);  // Distance threshold in meters
 
             using ACTOR_CRITIC_CONFIG = ActorAndCritic<T, TI, ENVIRONMENT, TD3_PARAMETERS>;
@@ -89,7 +89,7 @@ namespace learning_to_fly{
 //            static constexpr TI REPLAY_BUFFER_LIMIT = 3000000;
             static constexpr TI REPLAY_BUFFER_CAP = STEP_LIMIT;
             static constexpr TI ENVIRONMENT_STEP_LIMIT = 1000;  // Episode length for training
-            static constexpr TI ENVIRONMENT_STEP_LIMIT_EVALUATION = 2000;  // Longer for evaluation to show sustained hovering
+            static constexpr TI ENVIRONMENT_STEP_LIMIT_EVALUATION = 1000;  // Longer for evaluation to show sustained hovering
             static constexpr TI BASE_SEED = 0;
             static constexpr bool CONSTRUCT_LOGGER = false;
             using OFF_POLICY_RUNNER_SPEC = rlt::rl::components::off_policy_runner::Specification<T, TI, ENVIRONMENT, N_ENVIRONMENTS, ASYMMETRIC_OBSERVATIONS, REPLAY_BUFFER_CAP, ENVIRONMENT_STEP_LIMIT, rlt::rl::components::off_policy_runner::DefaultParameters<T>, false, true, 1000>;
