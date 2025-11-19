@@ -53,8 +53,8 @@ namespace learning_to_fly{
             // When empty (""), uses random weight initialization
             // When set to a valid .h file path, loads weights from that checkpoint
             // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "";  // Random init for training from scratch
-            // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hover_actors/hoverActor_000000000300000.h"; // WRONG for position-to-position! This is a HOVER actor
-            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/position_to_position_2m_good_agents/actor_000000002400000.h"; // Pre-trained NAVIGATION actor for position-to-position training
+            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hover_actors/hoverActor_000000000300000.h"; // WRONG for position-to-position! This is a HOVER actor
+            // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/position_to_position_2m_good_agents/actor_000000002400000.h"; // Pre-trained NAVIGATION actor for position-to-position training
 
             // Policy switching configuration
             // Enable distance-based switching between navigation and hover actors during training
@@ -85,7 +85,7 @@ namespace learning_to_fly{
             static constexpr bool COLLECT_EPISODE_STATS = false;
             static constexpr TI EPISODE_STATS_BUFFER_SIZE = 1000;
             static constexpr TI N_ENVIRONMENTS = 1;  // Cannot increase due to simu            cd /home/shaked/Projects/RL-Flight-Crazyflie && ./build_firmware_with_policy_switching.sh actors/position_to_position_2m_good_agents/actor_000000002400000.h actors/hover_actors/new2/actor_000000001600000.hlator constraints
-            static constexpr TI STEP_LIMIT = 1600001;
+            static constexpr TI STEP_LIMIT = 2000001;
 //            static constexpr TI REPLAY_BUFFER_LIMIT = 3000000;
             static constexpr TI REPLAY_BUFFER_CAP = STEP_LIMIT;
             static constexpr TI ENVIRONMENT_STEP_LIMIT = 1000;  // Episode length for training

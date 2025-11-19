@@ -8,10 +8,10 @@ namespace learning_to_fly {
     namespace constants {
         // Target position for position-to-position training
         template<typename T>
-        constexpr T TARGET_POSITION_X = T(0.0);
+        constexpr T TARGET_POSITION_X = T(2.0);
         
         template<typename T>
-        constexpr T TARGET_POSITION_Y = T(1.2);
+        constexpr T TARGET_POSITION_Y = T(0.0);
         
         template<typename T>
         constexpr T TARGET_POSITION_Z = T(0.0);
@@ -41,7 +41,7 @@ namespace learning_to_fly {
         
         // Array of cylindrical obstacles - can be extended in the future
         constexpr CylindricalObstacle OBSTACLES[] = {
-            // {0.0, 1.0, 0.2, -1.0, 1.0}  // x=0m, y=1m, radius=20cm, z from -1m to +1m
+            // {1.0, 0.0, 0.3, -1.0, 1.0}  // x=1m, y=0m, radius=30cm, z from -1m to +1m
         };
         
         constexpr size_t NUM_OBSTACLES = sizeof(OBSTACLES) / sizeof(OBSTACLES[0]);

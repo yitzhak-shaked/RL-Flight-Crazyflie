@@ -12,17 +12,19 @@ namespace learning_to_fly::config{
         static constexpr bool EXPLORATION_NOISE_DECAY = true;
     };
 
-    // New ablation spec for position-to-position learning - identical to hover training
+    // New ablation spec for position-to-position learning
+    // CRITICAL: Curriculum disabled - it's designed for hover training (tightening from 1m to 20cm)
+    // Position-to-position needs stable rewards throughout training for 2m navigation
     struct POSITION_TO_POSITION_ABLATION_SPEC{
         static constexpr bool DISTURBANCE = true;
         static constexpr bool OBSERVATION_NOISE = true;
         static constexpr bool ASYMMETRIC_ACTOR_CRITIC = true;
         static constexpr bool ROTOR_DELAY = true;
         static constexpr bool ACTION_HISTORY = true;
-        static constexpr bool ENABLE_CURRICULUM = true;
-        static constexpr bool RECALCULATE_REWARDS = true;
-        static constexpr bool USE_INITIAL_REWARD_FUNCTION = true; // Use hover reward structure
-        static constexpr bool USE_POSITION_TO_POSITION_REWARD = true; // New flag
+        static constexpr bool ENABLE_CURRICULUM = false;  // DISABLED: Causes policy collapse at 100k steps
+        static constexpr bool RECALCULATE_REWARDS = false;  // DISABLED: Breaks replay buffer consistency
+        static constexpr bool USE_INITIAL_REWARD_FUNCTION = true;
+        static constexpr bool USE_POSITION_TO_POSITION_REWARD = true;
         static constexpr bool INIT_NORMAL = true;
         static constexpr bool EXPLORATION_NOISE_DECAY = true;
     };

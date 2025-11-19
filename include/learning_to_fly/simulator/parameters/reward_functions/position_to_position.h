@@ -237,22 +237,33 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
                 }
             }
             
-            // V16: CRITICAL FIX - Treat Z-error EQUALLY to XY-error in distance calculation
-            // Previous versions allowed "fly up and hover above target" exploit
-            // Z-error was penalized separately and weakly, allowing agent to cheat
-            
-            // The target_distance already includes Z component, but we need to ensure
-            // Z-error isn't rewarded by proximity bonuses when XY is close but Z is wrong
+            // BALANCED: Z-error penalty - same as working version (linear * 2.0)
+            // Penalize any Z deviation from target Z coordinate
             T z_error = math::abs(device.math, next_state.position[2] - params.target_pos[2]);
+            // Gentler penalty for Z deviation
+            progress_reward -= params.velocity_reward_scale * z_error * T(2.0);
             
-            // STRONG Z-error penalty that scales with velocity_reward_scale
-            // This must be LARGER than proximity bonuses to prevent "hover above target" exploit
-            progress_reward -= params.velocity_reward_scale * z_error * z_error * T(10.0);
+            // POLICY SWITCH BONUS: Smooth gradient toward switch threshold
+            // Creates continuous reward signal guiding navigation to 0.3m
+            T switch_threshold = T(0.3);
             
-            // Additional exponential penalty for excessive altitude (any Z > 0.5m from target)
-            if(z_error > T(0.5)) {
-                T excess_z = z_error - T(0.5);
-                progress_reward -= params.velocity_reward_scale * excess_z * excess_z * excess_z * T(20.0);
+            // Exponential reward that increases as we approach switch threshold
+            // This creates a smooth "attraction basin" toward the 0.3m goal
+            if(target_distance < T(2.0)) { // Only active within reasonable range
+                T distance_to_switch = math::max(device.math, T(0), target_distance - switch_threshold);
+                // Exponential decay: stronger reward as we get closer to switch threshold
+                T switch_approach_reward = params.velocity_reward_scale * math::exp(device.math, -distance_to_switch * T(2.0)) * T(5.0);
+                progress_reward += switch_approach_reward;
+                
+                // Extra bonus when actually within switch threshold
+                if(target_distance < switch_threshold) {
+                    progress_reward += params.velocity_reward_scale * T(10.0);
+                    
+                    // Even more for being very close
+                    if(target_distance < switch_threshold * T(0.5)) {
+                        progress_reward += params.velocity_reward_scale * T(5.0);
+                    }
+                }
             }
             
             // Additional velocity reward when moving towards target
@@ -272,52 +283,8 @@ namespace rl_tools::rl::environments::multirotor::parameters::reward_functions{
                 if(vel_reward > T(3.0)) vel_reward = T(3.0);
                 progress_reward += params.velocity_reward_scale * vel_reward * T(0.2); // Increased from 0.05
             } else if(target_distance < params.target_radius && velocity_towards_target < T(0)) {
-                // OLD WEAK PENALTY (replaced below): Penalize moving away from center when already inside the ball
-                // progress_reward += params.velocity_reward_scale * velocity_towards_target * T(0.3);
-            }
-            
-            // ============================================================================
-            // ANTI-DRIFT MECHANISM: Strongly penalize leaving the target zone once reached
-            // ============================================================================
-            // This is the key fix for the drift problem - agents reach target but don't stay
-            if(target_distance < params.target_radius) {
-                // Calculate total speed (linear + angular contribution)
-                T linear_speed = math::sqrt(device.math, linear_vel_cost);
-                T angular_speed = math::sqrt(device.math, angular_vel_cost);
-                
-                // PENALTY 1: Exponential penalty for outward velocity (moving away from target)
-                if(velocity_towards_target < T(0)) {
-                    // Quadratic penalty for outward velocity - MUCH stronger than old 0.3 scale
-                    T drift_penalty = velocity_towards_target * velocity_towards_target * T(15.0);
-                    progress_reward -= params.velocity_reward_scale * drift_penalty;
-                    
-                    // Extra penalty if drifting fast (speed above threshold)
-                    if(linear_speed > T(0.3)) {
-                        progress_reward -= params.velocity_reward_scale * linear_speed * T(10.0);
-                    }
-                }
-                
-                // REWARD 1: Strong bonus for hovering (nearly zero velocity) when inside target
-                // This encourages the hover behavior learned from the pre-trained hover actor
-                if(linear_speed < T(0.15)) {
-                    // Massive reward for being nearly stationary at target
-                    // Linear interpolation from 0.15 to 0: higher reward for lower speed
-                    T stillness_bonus = (T(0.15) - linear_speed) * T(25.0);
-                    progress_reward += params.velocity_reward_scale * stillness_bonus;
-                }
-                
-                // REWARD 2: Additional bonus for low angular velocity (stable orientation)
-                if(angular_speed < T(0.2)) {
-                    T angular_stillness_bonus = (T(0.2) - angular_speed) * T(15.0);
-                    progress_reward += params.velocity_reward_scale * angular_stillness_bonus;
-                }
-                
-                // PENALTY 2: Penalize any speed above hovering threshold
-                // This creates a strong "settling basin" at the target
-                if(linear_speed > T(0.5)) {
-                    T excess_speed = linear_speed - T(0.5);
-                    progress_reward -= params.velocity_reward_scale * excess_speed * excess_speed * T(8.0);
-                }
+                // Penalize moving away from center when already inside the ball
+                progress_reward += params.velocity_reward_scale * velocity_towards_target * T(0.3);
             }
         }
         
