@@ -278,6 +278,40 @@ private:
             typename ENVIRONMENT::State state;
             rlt::sample_initial_state(device, env, state, rng);
             
+            // Override initial velocities to zero for evaluation (stationary spawn)
+            for(TI i = 0; i < 3; i++) {
+                state.linear_velocity[i] = 0;
+                state.angular_velocity[i] = 0;
+            }
+            
+            // Limit initial orientation to small angles for evaluation (within ±10 degrees)
+            // Convert quaternion to euler angles, clamp, and convert back
+            T max_angle = 10.0 * 3.14159 / 180.0; // 10 degrees in radians
+            
+            // Extract euler angles from quaternion (simplified - assumes small angles)
+            T roll = 2.0 * (state.orientation[0] * state.orientation[1] + state.orientation[2] * state.orientation[3]);
+            T pitch = 2.0 * (state.orientation[0] * state.orientation[2] - state.orientation[3] * state.orientation[1]);
+            T yaw = 2.0 * (state.orientation[0] * state.orientation[3] + state.orientation[1] * state.orientation[2]);
+            
+            // Clamp angles
+            roll = rlt::math::clamp(device.math, roll, -max_angle, max_angle);
+            pitch = rlt::math::clamp(device.math, pitch, -max_angle, max_angle);
+            yaw = rlt::math::clamp(device.math, yaw, -max_angle, max_angle);
+            
+            // Convert back to quaternion (small angle approximation)
+            T half_roll = roll / 2.0;
+            T half_pitch = pitch / 2.0;
+            T half_yaw = yaw / 2.0;
+            
+            state.orientation[0] = rlt::math::cos(device.math, half_roll) * rlt::math::cos(device.math, half_pitch) * rlt::math::cos(device.math, half_yaw) + 
+                                   rlt::math::sin(device.math, half_roll) * rlt::math::sin(device.math, half_pitch) * rlt::math::sin(device.math, half_yaw);
+            state.orientation[1] = rlt::math::sin(device.math, half_roll) * rlt::math::cos(device.math, half_pitch) * rlt::math::cos(device.math, half_yaw) - 
+                                   rlt::math::cos(device.math, half_roll) * rlt::math::sin(device.math, half_pitch) * rlt::math::sin(device.math, half_yaw);
+            state.orientation[2] = rlt::math::cos(device.math, half_roll) * rlt::math::sin(device.math, half_pitch) * rlt::math::cos(device.math, half_yaw) + 
+                                   rlt::math::sin(device.math, half_roll) * rlt::math::cos(device.math, half_pitch) * rlt::math::sin(device.math, half_yaw);
+            state.orientation[3] = rlt::math::cos(device.math, half_roll) * rlt::math::cos(device.math, half_pitch) * rlt::math::sin(device.math, half_yaw) - 
+                                   rlt::math::sin(device.math, half_roll) * rlt::math::sin(device.math, half_pitch) * rlt::math::cos(device.math, half_yaw);
+            
             // Create drone for visualization
             TI drone_id = drone_id_counter++;
             using UI = rlt::rl::environments::multirotor::UI<decltype(env)>;
