@@ -41,7 +41,7 @@ namespace learning_to_fly {
         
         // Array of cylindrical obstacles - can be extended in the future
         constexpr CylindricalObstacle OBSTACLES[] = {
-            // {1.0, 0.0, 0.3, -1.0, 1.0}  // x=1m, y=0m, radius=30cm, z from -1m to +1m
+            {1.0, 0.0, 0.3, -1.0, 1.0}  // x=1m, y=0m, radius=30cm, z from -1m to +1m
         };
         
         constexpr size_t NUM_OBSTACLES = sizeof(OBSTACLES) / sizeof(OBSTACLES[0]);

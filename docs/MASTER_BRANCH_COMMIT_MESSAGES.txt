@@ -1,0 +1,668 @@
+RL-Flight-Crazyflie — Work Log (Commit Messages)
+
+Repository: https://github.com/yitzhak-shaked/RL-Flight-Crazyflie
+Branch: master
+Generated: 2026-01-02
+Source of messages: GitHub MCP (commit metadata fetched from GitHub); commit SHAs enumerated from local .git branch reflog (no terminal).
+
+Commits (oldest → newest)
+
+1) f3cd92e60951ba69cc1ba2e3393837ac4409a152
+   Date: 2025-02-28T18:02:22Z
+   Author: Jonas Eschmann <jonas.eschmann@gmail.com>
+   Message:
+   Update README.MD
+
+2) 935ded868a4b9af88d6deeeb6dd7e8e8a675fdfb
+   Date: 2025-06-11T13:02:19Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Adding VS code files
+
+3) 78e74a9bf24bea60779794c4c4cb6275c0a46261
+   Date: 2025-06-11T13:03:05Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Creating Useful Cheetsheet
+
+4) dca1b515229934bd3bd2f0bf1cde696f08ed5506
+   Date: 2025-06-11T13:04:37Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   First Deployment Related Updates
+
+5) 94996207b8e3f2a8f667371518d05fde28a5c93e
+   Date: 2025-06-28T08:40:19Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Adding position to position training procedure.
+
+6) 552eb5ec9180448e409ea9452b0aa0e24fdbb93b
+   Date: 2025-06-28T08:41:22Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Improving Simulation Visualization. (By adding a axis grid and position indicators)
+
+7) 0ad6585075e14047ae01ffdac23f27f46b1f06d6
+   Date: 2025-06-28T09:36:35Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Make the target position a dynamic constant in constants.h
+
+8) e95e1d383e111f9409332491d4641fdcb5d8fd1b
+   Date: 2025-06-28T16:11:57Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Fixed target sphere position in simulation.
+   Fix for position to position reward function.
+
+9) 01504fffb6a38ca9c303d23e5a7705326840d3ff
+   Date: 2025-06-28T16:14:47Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Fixed actor loading
+
+10) 7b9e51d2f40220c9668f66f6d5f2d0130114e997
+   Date: 2025-06-28T16:18:13Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Merge branch 'master' of https://github.com/yitzhak-shaked/RL-Flight-Crazyflie
+
+11) 6a675760dcea3f074f71156faf0a3d141738d5da
+   Date: 2025-07-09T20:51:50Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Added functionality for simulating an actor from a file on the web UI.
+
+12) 95da22f009651714efd270825b3fc2abc89f44e6
+   Date: 2025-07-10T06:04:42Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Added No-Debug Launch Configurations
+
+13) e4f923cb90e2173d1c00b2ca47e2801394e4a2ff
+   Date: 2025-08-17T21:20:56Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Implement automated training parameter summary system
+
+   - Add TrainingSummaryGenerator C++ class for real-time summary generation
+   - Integrate summary generation into training initialization process
+   - Create cross-reference system between logs and actors folders
+   - Include specific actor initialization file tracking (hoverActor_000000000300000.h)
+   - Add comprehensive training parameter documentation
+   - Replace deprecated bash scripts with C++ implementation
+
+   Features:
+   * Automatic generation during training startup
+   * Bidirectional cross-references between logs and actors
+   * Complete parameter capture (ablation features, algorithm settings, environment config)
+   * Actor starting point traceability
+   * No external dependencies - integrated into training process
+
+   Files:
+   * src/steps/training_summary.h - Core C++ implementation
+   * src/training.h - Integration point for automatic generation
+   * TRAINING_SUMMARIES.md - Updated comprehensive documentation
+   * actors/TRAINING_INFO_*.txt - Cross-reference files for actor folder
+
+14) c7388e25477d37c526487a2df08db85fba097fad
+   Date: 2025-08-21T17:06:55Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: Implement unified directory structure for training outputs
+
+   ✨ Major Changes:
+   - Consolidate all training outputs in checkpoints/multirotor_td3/<run_name>/
+   - Eliminate separate logs directory and cross-reference complexity
+
+   🔧 Technical Implementation:
+   - Update logger to save directly in checkpoint directory (src/training.h)
+   - Move learning curves to checkpoint directory (src/ablation_study.cpp)
+   - Simplify training summary script (scripts/create_training_files.sh)
+   - Update file path references (src/steps/training_summary.h)
+   - Update documentation (TRAINING_SUMMARIES.md)
+
+   📁 New Directory Structure:
+   checkpoints/multirotor_td3/<run_name>/
+   ├── actor_*.h5/.h                    # Training checkpoints
+   ├── data.tfevents                    # TensorBoard logs
+   ├── learning_curves_<run_name>.h5    # Performance metrics
+   └── training_parameters_summary.txt  # Complete documentation
+
+   ✅ Benefits:
+   - Simplified navigation (all files in one location)
+   - Easy backup/transfer (single directory per training run)
+   - Automatic documentation during training initialization
+   - Cross-platform compatible
+   - No more logs directory confusion
+
+15) 206b6c63e7e5a3b1d867b6b035ee1f066e91f04d
+   Date: 2025-10-17T07:02:22Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: sorting actors in wev UI evaluate actor screen by their last evaluated date
+
+16) a7418bf80be17ce822215efef8a533d8922c4dfe
+   Date: 2025-10-17T07:38:18Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: training summary consisted fixed values instead of the actual updated ones.
+   feat: added full reward function parameters to the training summary output.
+
+17) 40370beb7b1bbb84c4e13dbeee975a82186939a5
+   Date: 2025-10-24T13:46:36Z
+   Author: Ogal <ogal@example.com>
+   Message:
+   updated reward function for position-to-position training
+
+18) a70e47d74e16b0b186b0df34b076f343da062004
+   Date: 2025-10-24T15:43:15Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: optimize training performance with OpenBLAS and proper configuration
+
+   - Enable OpenBLAS backend for 5x faster training (~300s -> ~66s for 300k steps)
+   - Configure CMake with Release mode (-O3) and fast math optimizations
+   - Set OPENBLAS_NUM_THREADS=1 to avoid threading overhead (critical for performance)
+   - Update VS Code tasks.json with optimized CMake configuration
+   - Add environment variables to all launch.json configurations
+   - Disable validation during training (can be re-enabled if needed)
+   - Re-enable checkpointing (actor files generated every 100k steps)
+   - Fix episode length back to 500 steps (was incorrectly set to 2000)
+   - Use DEFAULT_ABLATION_SPEC instead of POSITION_TO_POSITION for standard training
+   - Add PERFORMANCE_OPTIMIZATION.md documentation
+
+   Performance improvements:
+   - Training time: 300s -> 66s (5x speedup)
+   - CPU usage: 20% -> 99% (efficient single-threaded)
+   - Backend: Generic C++ -> OpenBLAS
+   - Checkpointing: Enabled with minimal overhead (~9s/300k steps)
+
+19) 7fb04b4b3dd3102bbc51295f8bb91f58076e22b7
+   Date: 2025-10-25T08:24:04Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: Remove deprecated TRAINING_INFO file creation in actors directory
+
+   This behavior was part of deprecated code that created redundant reference
+   files in the actors directory. Training information is already available in
+   the checkpoint folders.
+
+20) 911e3adfc4e23e3ff6fb9a0f8dbd43c488f4955b
+   Date: 2025-10-26T22:08:38Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: Increase position termination threshold from 0.6m to 1.5m
+
+   CRITICAL BUG FIX: The drone was physically prevented from reaching the 1.0m
+   target because episodes terminated when any axis exceeded 0.6m from origin.
+
+   Changes:
+   - Increased position_threshold from 0.6 to 1.5 in both classic and fast_learning
+   - This allows the drone to reach 1.0m target with 0.5m safety margin
+   - Explains why all training attempts stopped at ~0.5m regardless of other fixes
+
+   Impact:
+   - Agents can now physically reach the target position at (0, 1.0, 0)
+   - Training should progress beyond the previous 0.5m barrier
+
+21) 73e69884264fe2279225b365b141b37c5c940bdc
+   Date: 2025-10-26T22:11:34Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: Enhance training system for transfer learning
+
+   Optimizer State Reset:
+   - Reset Adam optimizer state (momentum & adaptive LR) after loading checkpoints
+   - Prevents catastrophic forgetting when switching from hover to position tasks
+   - Applies to both actor and critic optimizers
+
+   Init Distribution:
+   - Increased INIT_POSITION from 0.2m to 0.6m for better exploration coverage
+
+   Reward Function Improvements (V14):
+   - Gentler gradients for smoother learning: POSITION_SCALE 0.15→0.12
+   - Improved velocity rewards: VELOCITY_SCALE 0.03→0.1, base reward 0.9→0.95
+   - Stronger anti-drift penalty to keep drone near target
+
+   Impact: Better transfer learning stability and exploration diversity
+
+22) bebd013f52e5ae0cf9b3252dabc950287245c7a2
+   Date: 2025-10-26T22:19:03Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: Correct best-actor checkpoint evaluation index logic
+
+   ISSUE: Best checkpoint system wasn't working - still saving checkpoints at
+   fixed intervals (e.g., 700000) instead of when performance actually improved.
+
+   ROOT CAUSE: Logic error in evaluation result indexing. The checkpoint()
+   function is called BEFORE td3::loop::step(), which means:
+   - At step 10000: checkpoint() runs first, then evaluation happens
+   - We need to check the PREVIOUS evaluation (from step 0)
+   - Original code: tried to use evaluation_index-1 but had off-by-one errors
+
+   FIXES:
+   1. Check at step >= EVALUATION_INTERVAL (not step > 0)
+   2. Use evaluation_index = (step / INTERVAL) - 1 to get previous eval
+   3. Proper bounds checking: evaluation_index >= 0 and < N_EVALUATIONS
+   4. Changed actor saving from actor (exploration noise) to actor_target (stable)
+
+   IMPACT: Now actually saves actor_best.h when evaluation shows improvement,
+   not just at fixed step intervals.
+
+23) 35c9715955d6bfe884ccd55e2e7e06396634135a
+   Date: 2025-10-26T22:19:44Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: Ensure training summary directory exists before file creation
+
+   ISSUE: UI training wasn't generating training_parameters_summary.txt
+
+   ROOT CAUSE: File write failed because the checkpoints/{run_name}/ directory
+   didn't exist yet when summary generation ran.
+
+   FIX:
+   1. Added std::filesystem::create_directories() before opening summary file
+   2. Includes try-catch for graceful error handling
+   3. Ensures parent directories are created recursively
+
+   ENHANCEMENT: Added termination configuration section to summary
+   - Documents position_threshold, velocity_threshold, angular_velocity_threshold
+   - Shows ENVIRONMENT_STEP_LIMIT and training STEP_LIMIT
+   - Provides complete picture of when episodes terminate
+
+   IMPACT: UI training now successfully creates summary files with complete
+   termination threshold documentation.
+
+24) 7a38920e86b9a59696b63aa1ac8f1f253d2943f8
+   Date: 2025-10-26T22:20:22Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: Sync UI training steps with config.h constants
+
+   ISSUE: UI hardcoded STEP_LIMIT = 1000001 instead of using config.h value
+
+   ROOT CAUSE: CONFIG::STEP_LIMIT and POSITION_TO_POSITION_CONFIG::STEP_LIMIT
+   were defined as hardcoded values in ui.cpp instead of referencing the base
+   configuration.
+
+   FIX:
+   - Changed both CONFIG and POSITION_TO_POSITION_CONFIG to use:
+     learning_to_fly::config::Config<ABLATION_SPEC>::STEP_LIMIT
+   - Now automatically matches whatever is set in config.h
+   - Single source of truth for training duration
+
+   IMPACT: UI and headless training now always use the same step limits,
+   preventing configuration drift and confusion.
+
+25) 6b3b93112e7233783f233c1e01399ab825008aac
+   Date: 2025-10-27T21:13:58Z
+   Author: Ogal <ogal@example.com>
+   Message:
+   Add pipe obstacle and balance rewards after successful 2m position-to-position run
+
+   - Added cylindrical obstacle (pipe) at x=0m, y=1m with 0.2m radius
+   - Obstacle extends from z=-1m to z=+1m creating navigation challenge
+   - Implemented collision detection and proximity penalties for obstacle avoidance
+   - Balanced reward function to fix erratic behavior after 200k steps:
+     * Reduced distance_reward from 15.0 to 3.0
+     * Reduced in-target bonus from 22.5 to 8.0
+     * Reduced close-to-center bonuses (13.5->4.0, 9.0->3.0)
+     * Reduced Z-error penalty from 6.0 to 2.0
+   - Prevents reward exploitation and policy collapse
+   - Ensures all reward components contribute meaningfully to learning
+
+26) d942a45435f927c4ef227329a30564c0fb4b5419
+   Date: 2025-10-29T19:43:55Z
+   Author: Ogal <ogal@example.com>
+   Message:
+   Add position_to_position_2m_good_agents checkpoints
+
+27) bb20d0476a38d7974f73707a6cab32b04c1ccacc
+   Date: 2025-10-30T15:31:34Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: populate training summary with more metrics
+   fix: solving checkpoint .h & .h5 actors mismatch
+
+28) 0f04dea13f89c3378f942cbc0507ebf46a82e730
+   Date: 2025-10-31T10:04:35Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: added support for plain obstacles in position to position training
+
+29) a870dc96bef71ba8710e6c31ce6529f63f52fa34
+   Date: 2025-10-31T11:44:40Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: take-off exploit resolved (hopefully)
+
+30) 15d9fbecb75e2043f422884f36b1e44660019515
+   Date: 2025-11-01T11:58:43Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: corrupted actor loading corrected and anti-drift reward mechanism added
+
+   - Fixed actor loading issues in training
+   - Added anti-drift penalties (15x) for movement at target
+   - Added stillness bonus (25x) for staying near target
+   - Improved hovering stability at target position
+
+31) 27b7f0be9915532875a21cb0aae40c1a6f2c5e13
+   Date: 2025-11-01T11:59:10Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: add policy switching infrastructure
+
+   - Added policy_switching.h with distance calculation and observation transform
+   - Implemented off_policy_runner_with_policy_switching.h for training data collection
+   - Added policy_switch.h for load/enable/disable functions
+   - Enables smooth switching between navigation and hover actors at 0.5m threshold
+
+32) bfabc020f579d8523384d86fa52585744846e5aa
+   Date: 2025-11-01T12:00:14Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: integrate policy switching into training loop
+
+   - Enabled policy switching in config.h with 0.5m threshold
+   - Modified training.h to use custom off-policy runner with switching
+   - Updated training_state.h to include policy switching parameters
+   - Navigation actor now learns from mixed experiences (nav + hover)
+
+33) 86e27be8f4707fe43705950f751a7cbb1e9fa5bc
+   Date: 2025-11-01T12:00:50Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: add policy switching visualization in web UI
+
+   - Modified trajectory_collection.h to show actor transitions
+   - Updated ui.cpp to synchronize evaluation with training threshold
+   - Policy switching now visible in training visualization
+   - Users can see when hover actor takes over near target
+
+34) 6c858dd6094b24a46b359abfce31f74536ae1fc9
+   Date: 2025-11-01T12:31:09Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: update controller submodule with policy switching implementation
+
+35) 4f38672af1ade6cd8e1ef97f80a4e133d4086c95
+   Date: 2025-11-01T12:31:34Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: add firmware build infrastructure for policy switching
+
+   - Updated Dockerfile_build_firmware to pass ENABLE_POLICY_SWITCHING to make
+   - Added build_firmware_with_policy_switching.sh automation script
+   - Script handles actor file preparation and Docker build with correct flags
+   - Provides clear next-step instructions after build completes
+
+36) cc0ef0a7a6ad4c29d7c1e3d7fcc8bc7b7c8040c8
+   Date: 2025-11-01T12:35:55Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: add deployment scripts for policy switching
+
+   - Added configure_policy_switching.py for parameter setup via Python
+   - Added new 'policy_switching' mode to trigger.py
+   - New mode automatically sets ps_enable and ps_thresh parameters
+   - Added --ps-threshold command-line argument for runtime tuning
+   - Provides clear feedback and status information to user
+
+37) 046c27b97d51d5610ac843b3ab445132c0089d39
+   Date: 2025-11-01T12:36:19Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: unify actor evaluation with training policy switching behavior
+
+   - Modified evaluate_actor_loop to use policy_switching.h helper functions
+   - Automatically loads hover actor from config when evaluating navigation actor
+   - Uses same distance calculation and observation transformation as training
+   - Actor evaluation now matches training visualization behavior exactly
+   - Added policy_switching.h include for consistency
+
+38) f90fe47a5123350b1e2580ff7f4eb857f2857a64
+   Date: 2025-11-01T12:36:36Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   docs: add comprehensive policy switching documentation
+
+   - Added POLICY_SWITCHING_DEPLOYMENT.md (complete deployment guide)
+   - Added QUICK_REFERENCE.md (command cheat sheet)
+   - Added IMPLEMENTATION_SUMMARY.md (technical details)
+   - Updated CrazyCheetSheet.txt with policy switching command
+   - Includes Docker build, firmware flashing, parameter tuning
+   - Covers troubleshooting, testing procedures, and examples
+   - Documents all three deployment paths: firmware, scripts, UI
+
+39) 8d3cafe0e3a2b8125ac55771e33784becc2dde65
+   Date: 2025-11-01T12:38:27Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   test: add policy switching test script for WebSocket testing
+
+40) 083e39f658526cd0364f61a44f7dcdda96eeaaf4
+   Date: 2025-11-03T16:35:21Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: improve UI visualization and evaluation and organize hover actors
+
+   - Move hover actors to dedicated hover_actors/ subdirectory
+   - Add new precision hover actor checkpoints (new1/ and new2/)
+   - Implement drone color switching visualization (gray=navigator, cyan=hover)
+   - Add actor switch zone visualization in UI with cyan sphere
+   - Update UI legend to explain actor switching behavior
+   - Add precision_hover initialization and reward parameters (for future use)
+   - Update documentation for policy switching deployment
+
+41) 04a6608cab8f365a8a1a430e8d14670341a2613f
+   Date: 2025-11-03T20:44:45Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: implement per-trajectory sticky policy switching in UI
+
+   - Add trajectory_switched_to_hover vector to track switching per drone
+   - Each trajectory now has its own sticky flag (doesn't revert once switched)
+   - Fixes issue where all drones were switching in sync due to shared flag
+   - Policy switching is now one-way: once hover actor is used, it stays active
+   - This matches the intended behavior: reach target → hover there permanently
+   - Actor evaluation already had correct sticky behavior, now training UI matches
+
+42) 5a03a4465d64b06e9c026ef2fdadc8ec9f1278e4
+   Date: 2025-11-03T20:54:08Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: add precision_hover termination parameters for hover training
+
+   - Start with 1m position threshold, curriculum reduces to 20cm
+   - Only affects hover training, not position-to-position
+   - Allows exploration initially, then tightens for precision hovering
+   - High velocity thresholds (1000) so only position matters
+
+43) 9b0e91d0f7ab008f2d794bebda1bd3483aa59cc2
+   Date: 2025-11-03T21:06:08Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: add type-based parameter selection for hover vs position-to-position training
+
+   - Add precision_hover_reward_function for hover training (higher position weight)
+   - Add get_init_params() to select initialization based on training type
+     * Position-to-position: uses orientation_biggest_angle (navigation training)
+     * Hover: uses precision_hover (closer to origin for precise hovering)
+   - Add get_termination_params() to select termination based on training type
+     * Position-to-position: fast_learning with 3.5m threshold
+     * Hover: precision_hover with curriculum 1m→20cm
+   - This allows both training modes to have optimized parameters
+
+44) e36bf27a93a5d10bb11714748137c0c473c7d020
+   Date: 2025-11-03T21:12:11Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: improve curriculum for hover training precision
+
+   - Reduce position_weight increase rate: 1.1→1.08 (8% vs 10% per 100k steps)
+   - Increase position_weight limit: 10→20 (more headroom for learning)
+   - Reduce linear_velocity_weight increase: 1.4→1.2 and limit: 1.0→0.5
+   - Add termination.position_threshold curriculum: 1m→20cm over training
+     * Gentler decrease: 4% per 100k steps
+     * More forgiving final target: 20cm (was 10cm which was too tight)
+   - This creates a smoother learning progression for precision hovering
+
+45) 663dbcdc04ad8836d46e36c35df03818a16a51ec
+   Date: 2025-11-03T21:29:18Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   config: update training parameters and actor paths
+
+   - Update actor paths to new2 (actor_000000001600000.h/h5)
+   - Reduce STEP_LIMIT: 2000001 → 1600001 (shorter training for faster iteration)
+   - Reduce ENVIRONMENT_STEP_LIMIT: 1500 → 1000 (shorter episodes for training)
+   - Increase ENVIRONMENT_STEP_LIMIT_EVALUATION: 1500 → 2000 (longer for evaluation)
+   - Reduce ACTOR_CHECKPOINT_INTERVAL: 200000 → 100000 (more frequent checkpoints)
+   - Add comments for clarity on actor initialization options
+
+46) 5204af28e247769d62f7843b80c2e68712b9206c
+   Date: 2025-11-03T21:31:15Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: add hover actor loading for policy switching in UI training
+
+   - Load hover actor from HOVER_ACTOR_PATH when position-to-position training starts
+   - Enable policy switching with configured threshold
+   - Add console output for debugging load status
+   - Matches behavior already present in evaluation mode
+
+47) c401d42f460ed3f9a8d31920b5eed212cdbbd99f
+   Date: 2025-11-03T21:36:42Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: scan actors directory recursively for evaluation UI
+
+   - Change from directory_iterator to recursive_directory_iterator
+   - Now finds actors in subdirectories (hover_actors/, hover_actors/new2/, etc.)
+   - Display relative path from actors/ for better organization
+   - Fixes issue where actors in subdirectories were not visible in UI
+
+48) e22599eb1c7c21d2fe37ac22540fcfd84352ab3d
+   Date: 2025-11-03T21:56:45Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   feat: use time-based seed for unique initial states in actor evaluation
+
+   - Create new RNG with time-based seed for each episode
+   - Ensures different initial conditions every time evaluation runs
+   - Combines current time + episode count for seed uniqueness
+   - Now each run will test actor with different random initial states
+
+49) a3b72b686cee0d4f55348b59716d2c88bd4ee998
+   Date: 2025-11-06T13:20:00Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: uploading missing .h5 actors files
+
+50) bafdbf335325485e9a78b23ca36420041b3a682a
+   Date: 2025-11-06T18:04:42Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: resolve policy switching issues in web UI training
+
+   Root causes fixed:
+   1. Duplicate hover actor loading in UI causing malloc failure and disabling policy switching
+   2. Wrong actor initialization - was using hover actor instead of navigation actor for position-to-position training
+
+   Changes:
+   - src/ui/ui.cpp: Remove duplicate hover actor loading (already handled by learning_to_fly::init)
+   - src/config/config.h:
+     * Use navigation actor (actor_000000002400000.h) for initialization instead of hover actor
+     * Use compatible hover actor file (hoverActor_000000000300000.h5) for policy switching
+     * Fix ENVIRONMENT_STEP_LIMIT_EVALUATION back to 1000
+
+   Impact:
+   - Policy switching now works correctly in web UI training visualization
+   - Drones start with capable navigation skills and learn to refine them
+   - Hover actor switches at 0.3m threshold for precise hovering
+   - Dramatically improved navigation performance in position-to-position training
+
+51) 6aa589ec62d058578e7a584878e0eb1b8d885c05
+   Date: 2025-11-06T18:04:59Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   chore: remove incompatible hover actor checkpoints
+
+   These new2 actor files have an incompatible HDF5 structure that includes
+   gradient datasets which the actor loader doesn't expect. They cause
+   'Unable to open the dataset gradient' errors when loading.
+
+   The compatible hover actor (hoverActor_000000000300000.h5) is now used
+   for policy switching instead.
+
+52) f2b3fbd31f91fe77c7c9a7ea3ec695755522967a
+   Date: 2025-11-06T22:30:41Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   docs: Update deployment guide with native build, namespace fixes, and actor validation
+
+   Key updates to POLICY_SWITCHING_DEPLOYMENT.md:
+
+   - Add native build as recommended option (faster than Docker)
+   - Document namespace collision issue and sed-based fix for dual-actor builds
+   - Add comprehensive actor validation section with testing procedures
+   - Include real-world test results (hover actor validated, nav actor needs work)
+   - Add troubleshooting for namespace collisions and actor drift issues
+   - Update summary with build options comparison and deployment checklist
+   - Clarify that Docker is optional, not required
+
+   This reflects all lessons learned from native firmware deployment testing,
+   including the critical discovery that individual actor validation is
+   essential before testing policy switching.
+
+53) ad034491baa3c471e8ca82b0796462631c64f4a7
+   Date: 2025-11-19T15:22:19Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   fix: disable curriculum for position-to-position training to prevent policy collapse
+
+   ROOT CAUSE: Curriculum-induced catastrophic forgetting at 100k step intervals
+
+   The training was failing due to the curriculum system (designed for hover training)
+   being incorrectly applied to position-to-position navigation:
+
+   WHAT WAS HAPPENING:
+   - Every 100k steps: position weight increased (×1.08), termination tightened (×0.96)
+   - ALL replay buffer rewards recalculated with new weights
+   - Actions that were 'good' suddenly became 'bad' with higher penalties
+   - Policy collapse: agent forgot how to navigate, couldn't reach target
+
+   WHY CURRICULUM BREAKS POSITION-TO-POSITION:
+   - Designed for hover: Start loose (1m), tighten to precise (20cm) at origin
+   - Wrong for navigation: Increasing position penalty punishes exploration
+   - Replay buffer corruption: Past experiences get new (incorrect) reward values
+   - Catastrophic forgetting: Actor learns its previous behavior was wrong
+
+   THE FIX:
+   - Disabled ENABLE_CURRICULUM for POSITION_TO_POSITION_ABLATION_SPEC
+   - Disabled RECALCULATE_REWARDS to preserve replay buffer consistency
+   - Restored working reward function (removed anti-drift mechanism)
+   - Added smooth exponential policy switch bonus (not discontinuous)
+   - Stable reward weights throughout training
+
+54) 56115bcaaa357bf25f2497a7d94b2cfb4ba7388c
+   Date: 2025-11-24T18:20:17Z
+   Author: Ogal <ogal@example.com>
+   Message:
+   feat: Add 2M actor checkpoint and improve evaluation spawn conditions
+
+   - Save actor_000000002000000 from run 1111 to actors/hover_actors/actor_2m_one_pipe_obsticle/
+   - UI evaluation: spawn with zero initial velocity (stationary)
+   - UI evaluation: limit initial orientation to ±10 degrees
+
+55) 24010f8206aa5ad54da3f338bdada3cfda38ba2d
+   Date: 2025-12-24T18:31:14Z
+   Author: Shaked Yitzhak <shaked8900@gmail.com>
+   Message:
+   Update controller submodule: policy switching fixes
+
+   Bumps controller to f930f1a (target alignment, clip limit, hover actor reference).

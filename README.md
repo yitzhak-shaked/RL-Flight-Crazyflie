@@ -44,6 +44,14 @@ This repository contains the code for the paper **Learning to Fly in Seconds** (
 
 The main dependency is the [RLtools](https://github.com/rl-tools/rl-tools) deep reinforcement learning library. 
 
+## Project manual (this fork/workspace)
+
+This repository contains additional tooling and workflows (Crazyflie deployment helpers, policy switching, training output organization).
+
+For a **from-scratch, end-to-end guide** (setup → training → outputs → firmware → flights), see:
+
+- [PROJECT_MANUAL.md](PROJECT_MANUAL.md)
+
 
 ## Instructions to run the code
 ### Docker (isolated)
@@ -147,7 +155,8 @@ python3 -m pip install tensorboard
 ```
 Then from the original directory `learning_to_fly`:
 ```
-tensorboard --logdir=logs
+# New runs write TensorBoard event files under checkpoints/
+tensorboard --logdir=checkpoints/multirotor_td3
 ```
 
 To run the training with the UI, we download the JavaScript dependencies in the form of the two files `three.module.js` and `OrbitControls.js`:

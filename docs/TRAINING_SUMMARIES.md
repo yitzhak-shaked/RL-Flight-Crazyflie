@@ -134,9 +134,12 @@ Initial Actor: hoverActor_000000000300000.h (Step 300,000 checkpoint)
 Starting Point: Pre-trained hover controller
 
 === RELATED FILES ===
-Training Summary: ../logs/[run_name]/training_parameters_summary.txt
-TensorBoard Logs: ../logs/[run_name]/data.tfevents
-Actor Checkpoints (this folder): [checkpoint file list]
+ Training Summary: ../checkpoints/multirotor_td3/[run_name]/training_parameters_summary.txt
+ TensorBoard Logs: ../checkpoints/multirotor_td3/[run_name]/data.tfevents
+ Actor Checkpoints (this folder): [checkpoint file list]
+ 
+ Note: The legacy `logs/` folder is deprecated. New runs store summaries and TensorBoard event files directly inside:
+ `checkpoints/multirotor_td3/<run_name>/`.
 ```
 
 ## Benefits

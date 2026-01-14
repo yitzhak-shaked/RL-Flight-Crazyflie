@@ -53,7 +53,7 @@ namespace learning_to_fly{
             // When empty (""), uses random weight initialization
             // When set to a valid .h file path, loads weights from that checkpoint
             // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "";  // Random init for training from scratch
-            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hover_actors/hoverActor_000000000300000.h"; // WRONG for position-to-position! This is a HOVER actor
+            static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/hover_actors/hoverActor_000000000300000.h";
             // static constexpr const char* ACTOR_CHECKPOINT_INIT_PATH = "actors/position_to_position_2m_good_agents/actor_000000002400000.h"; // Pre-trained NAVIGATION actor for position-to-position training
 
             // Policy switching configuration
