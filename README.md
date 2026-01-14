@@ -50,7 +50,7 @@ This repository contains additional tooling and workflows (Crazyflie deployment 
 
 For a **from-scratch, end-to-end guide** (setup → training → outputs → firmware → flights), see:
 
-- [PROJECT_MANUAL.md](PROJECT_MANUAL.md)
+- [docs/PROJECT_MANUAL.md](docs/PROJECT_MANUAL.md)
 
 
 ## Instructions to run the code

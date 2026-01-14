@@ -3,5 +3,7 @@
 /checkpoints
 /build
 /logs
+/cache
+/deployment_actors
 /.idea
 *.bin
